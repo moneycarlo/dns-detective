@@ -103,7 +103,8 @@ export const generateMockResult = (domain: string): DomainResult => {
       reportingEmails: hasDmarc ? [`dmarc@${domain}`] : [],
       ruaEmails: hasDmarc ? [`dmarc@${domain}`] : [],
       rufEmails: hasDmarc ? [`dmarc@${domain}`] : [],
-      errors: hasDmarc ? [] : ['No DMARC record found']
+      errors: hasDmarc ? [] : ['No DMARC record found'],
+      warnings: []
     },
     bimi: {
       record: hasBimi ? `v=BIMI1; l=${bimiLogoUrl}; a=https://${domain}/cert.pem` : null,
