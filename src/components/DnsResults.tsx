@@ -274,6 +274,19 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       <code className="text-sm break-all">{result.bimi.record}</code>
                     </div>
                     
+                    {/* Certificate Warning */}
+                    {!result.bimi.certificateUrl && (
+                      <Alert variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>
+                          <div className="space-y-1">
+                            <div className="font-medium">No certificate present</div>
+                            <div>BIMI logo will not display for some providers like Gmail. A Verified Mark Certificate (VMC) is required for full BIMI support.</div>
+                          </div>
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <h4 className="font-medium">Record Details</h4>
@@ -356,7 +369,12 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                 )}
                               </div>
                             ) : (
-                              <span className="text-gray-500 text-sm">Not specified</span>
+                              <div className="mt-1">
+                                <span className="text-red-600 text-sm font-medium">Not specified</span>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  Certificate required for Gmail and other providers
+                                </div>
+                              </div>
                             )}
                           </div>
                         </div>
