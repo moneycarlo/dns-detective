@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DomainInput } from '@/components/DomainInput';
@@ -134,10 +133,35 @@ const Index = () => {
     let spfLookupCount = 0;
     let exceedsLimit = false;
     let spfErrors: string[] = [];
+    let nestedLookups: { [key: string]: string } = {};
     
     if (hasSpf) {
-      // Generate consistent lookup count based on domain
-      spfLookupCount = (Math.abs(domainHash) % 15) + 1;
+      // Generate realistic nested lookups based on domain type
+      const includes = ['_spf.google.com', 'spf.protection.outlook.com', '_spf.salesforce.com'];
+      
+      // Calculate lookup count: 1 for main record + number of includes + nested lookups
+      let totalLookups = 1; // Main SPF record
+      
+      includes.forEach(include => {
+        // Each include adds 1 lookup
+        totalLookups += 1;
+        
+        // Generate nested SPF records with their own includes
+        if (include === '_spf.google.com') {
+          nestedLookups[include] = 'v=spf1 include:_netblocks.google.com include:_netblocks2.google.com include:_netblocks3.google.com ~all';
+          totalLookups += 3; // 3 additional nested includes
+        } else if (include === 'spf.protection.outlook.com') {
+          nestedLookups[include] = 'v=spf1 include:spf-a.outlook.com include:spf-b.outlook.com ~all';
+          totalLookups += 2; // 2 additional nested includes
+        } else if (include === '_spf.salesforce.com') {
+          nestedLookups[include] = 'v=spf1 include:_spf1.salesforce.com include:_spf2.salesforce.com ~all';
+          totalLookups += 2; // 2 additional nested includes
+        }
+      });
+      
+      // Add some variation based on domain hash but keep it realistic
+      const hashVariation = Math.abs(domainHash) % 3; // 0, 1, or 2
+      spfLookupCount = totalLookups + hashVariation;
       exceedsLimit = spfLookupCount > 10;
       
       if (exceedsLimit) {
@@ -159,11 +183,7 @@ const Index = () => {
         redirects: [],
         mechanisms: hasSpf ? ['include', 'include', 'include', '~all'] : [],
         errors: spfErrors,
-        nestedLookups: hasSpf ? {
-          '_spf.google.com': 'v=spf1 include:_netblocks.google.com include:_netblocks2.google.com include:_netblocks3.google.com ~all',
-          'spf.protection.outlook.com': 'v=spf1 include:spf-a.outlook.com include:spf-b.outlook.com ~all',
-          '_spf.salesforce.com': 'v=spf1 include:_spf1.salesforce.com include:_spf2.salesforce.com ~all'
-        } : {},
+        nestedLookups: nestedLookups,
         lookupCount: spfLookupCount,
         exceedsLookupLimit: exceedsLimit
       },
