@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -279,25 +278,47 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         <h4 className="font-medium">Record Details</h4>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Base Profile</label>
-                            <div className="mt-1">
-                              <Badge variant="outline">SVG Tiny PS</Badge>
-                            </div>
-                          </div>
-
-                          <div>
                             <label className="text-sm font-medium text-gray-700">Logo URL</label>
                             {result.bimi.logoUrl ? (
-                              <div className="mt-1 flex items-center gap-2">
-                                <a 
-                                  href={result.bimi.logoUrl} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
-                                  className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                                >
-                                  {result.bimi.logoUrl}
-                                </a>
-                                <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                              <div className="mt-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <a 
+                                    href={result.bimi.logoUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                  >
+                                    {result.bimi.logoUrl}
+                                  </a>
+                                  <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                </div>
+                                {/* Logo Preview */}
+                                <div className="w-16 h-16 border border-gray-200 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                                  <object 
+                                    data={result.bimi.logoUrl} 
+                                    type="image/svg+xml"
+                                    className="w-12 h-12"
+                                    onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
+                                    onError={(e) => {
+                                      handleImageError(result.bimi.logoUrl!, e);
+                                      (e.target as HTMLObjectElement).style.display = 'none';
+                                      (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  >
+                                    <img 
+                                      src={result.bimi.logoUrl} 
+                                      alt="BIMI Logo" 
+                                      className="w-12 h-12 object-contain"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    />
+                                  </object>
+                                  <div className={`text-gray-400 text-xs ${result.bimi.logoUrl ? 'hidden' : ''}`}>
+                                    No logo
+                                  </div>
+                                </div>
                               </div>
                             ) : (
                               <span className="text-gray-500 text-sm">Not specified</span>
@@ -341,92 +362,125 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       </div>
                       
                       <div className="space-y-4">
-                        <h4 className="font-medium">Email Mockup</h4>
-                        <div className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
-                          {/* Email Header */}
-                          <div className="bg-blue-500 text-white p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <div className="w-6 h-6 bg-white bg-opacity-20 rounded flex items-center justify-center">
-                                <Mail className="h-4 w-4" />
-                              </div>
-                              <span className="font-medium">Inbox</span>
-                            </div>
-                          </div>
-                          
-                          {/* Email List */}
-                          <div className="divide-y divide-gray-100">
-                            {/* BIMI Email */}
-                            <div className="p-3 hover:bg-gray-50 transition-colors">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
-                                  {result.bimi.logoUrl ? (
-                                    <object 
-                                      data={result.bimi.logoUrl} 
-                                      type="image/svg+xml"
-                                      className="w-8 h-8"
-                                      onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
-                                      onError={(e) => {
-                                        handleImageError(result.bimi.logoUrl!, e);
-                                        (e.target as HTMLObjectElement).style.display = 'none';
-                                        (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
-                                      }}
-                                    >
-                                      <img 
-                                        src={result.bimi.logoUrl} 
-                                        alt="BIMI Logo" 
-                                        className="w-8 h-8 object-contain"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.display = 'none';
-                                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                        }}
-                                      />
-                                    </object>
-                                  ) : null}
-                                  <div className={`text-gray-400 ${result.bimi.logoUrl ? 'hidden' : ''}`}>
-                                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
-                                      {result.domain.charAt(0).toUpperCase()}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between">
-                                    <div className="font-medium text-gray-900 truncate">
-                                      {result.domain}
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      9:15 AM
-                                    </div>
-                                  </div>
-                                  <div className="text-sm font-medium text-gray-800 truncate">
-                                    Welcome to our service! ✨
-                                  </div>
-                                  <div className="text-sm text-gray-500 truncate">
-                                    Thank you for joining us. We're excited to...
+                        <h4 className="font-medium">Email Preview</h4>
+                        {/* Phone-style mockup */}
+                        <div className="mx-auto max-w-sm">
+                          <div className="bg-gray-900 rounded-3xl p-2 shadow-2xl">
+                            {/* Phone bezel */}
+                            <div className="bg-black rounded-2xl overflow-hidden">
+                              {/* Status bar */}
+                              <div className="bg-black text-white text-xs px-4 py-2 flex justify-between items-center">
+                                <span>9:41</span>
+                                <div className="flex items-center gap-1">
+                                  <div className="w-4 h-2 border border-white rounded-sm">
+                                    <div className="w-3 h-1 bg-white rounded-sm"></div>
                                   </div>
                                 </div>
                               </div>
-                            </div>
-                            
-                            {/* Sample emails without BIMI */}
-                            <div className="p-3 bg-gray-50">
-                              <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                  <span className="text-white font-medium text-sm">JD</span>
+                              
+                              {/* Email app */}
+                              <div className="bg-white">
+                                {/* Email header */}
+                                <div className="bg-blue-500 text-white p-3 flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Mail className="h-5 w-5" />
+                                    <span className="font-medium">Inbox</span>
+                                  </div>
+                                  <div className="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                                    <span className="text-xs">3</span>
+                                  </div>
                                 </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center justify-between">
-                                    <div className="font-medium text-gray-900 truncate">
-                                      John Doe
-                                    </div>
-                                    <div className="text-xs text-gray-500">
-                                      8:45 AM
+                                
+                                {/* Email list */}
+                                <div className="divide-y divide-gray-100">
+                                  {/* BIMI Email */}
+                                  <div className="p-3 bg-blue-50">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-200">
+                                        {result.bimi.logoUrl ? (
+                                          <object 
+                                            data={result.bimi.logoUrl} 
+                                            type="image/svg+xml"
+                                            className="w-8 h-8"
+                                          >
+                                            <img 
+                                              src={result.bimi.logoUrl} 
+                                              alt="BIMI Logo" 
+                                              className="w-8 h-8 object-contain"
+                                            />
+                                          </object>
+                                        ) : (
+                                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                            {result.domain.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <div className="font-medium text-gray-900 truncate text-sm">
+                                            {result.domain}
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            9:15 AM
+                                          </div>
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-800 truncate">
+                                          Welcome to our service! ✨
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          Thank you for joining us. We're excited to...
+                                        </div>
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className="text-sm font-medium text-gray-800 truncate">
-                                    Meeting Update
+                                  
+                                  {/* Regular emails */}
+                                  <div className="p-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                        <span className="text-white font-medium text-sm">JD</span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <div className="font-medium text-gray-900 truncate text-sm">
+                                            John Doe
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            8:45 AM
+                                          </div>
+                                        </div>
+                                        <div className="text-sm text-gray-600 truncate">
+                                          Meeting Update
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          The meeting has been rescheduled...
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="text-sm text-gray-500 truncate">
-                                    The meeting has been rescheduled to...
+                                  
+                                  <div className="p-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                                        <span className="text-white font-medium text-sm">TS</span>
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                          <div className="font-medium text-gray-900 truncate text-sm">
+                                            Team Support
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            Yesterday
+                                          </div>
+                                        </div>
+                                        <div className="text-sm text-gray-600 truncate">
+                                          Your ticket has been resolved
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          Thank you for contacting support...
+                                        </div>
+                                      </div>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -436,7 +490,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         
                         <div className="text-xs text-gray-600 space-y-1">
                           <div className="font-medium">BIMI Display Preview</div>
-                          <div>Shows how your brand logo appears in email clients that support BIMI</div>
+                          <div>Shows how your brand logo appears in email clients</div>
                           {result.bimi.logoUrl && (
                             <div className="text-green-600">✓ Logo detected and displayed</div>
                           )}
