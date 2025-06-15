@@ -1,3 +1,4 @@
+
 import { DomainResult } from '@/types/domain';
 
 export const generateMockResult = (domain: string): DomainResult => {
@@ -94,7 +95,14 @@ export const generateMockResult = (domain: string): DomainResult => {
       policy: hasDmarc ? 'quarantine' : '',
       subdomainPolicy: hasDmarc ? 'quarantine' : '',
       percentage: hasDmarc ? 100 : 0,
+      adkim: 'r',
+      aspf: 'r',
+      fo: '0',
+      rf: 'afrf',
+      ri: '86400',
       reportingEmails: hasDmarc ? [`dmarc@${domain}`] : [],
+      ruaEmails: hasDmarc ? [`dmarc@${domain}`] : [],
+      rufEmails: hasDmarc ? [`dmarc@${domain}`] : [],
       errors: hasDmarc ? [] : ['No DMARC record found']
     },
     bimi: {
