@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -75,6 +74,20 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
       </CardContent>
     </Card>
   );
+
+  const handleImageLoad = (url: string) => {
+    console.log(`✅ BIMI logo loaded successfully: ${url}`);
+  };
+
+  const handleImageError = (url: string, error: any) => {
+    console.log(`❌ BIMI logo failed to load: ${url}`);
+    console.log('Error details:', error);
+    
+    // Try to fetch the URL to get more details about the failure
+    fetch(url, { mode: 'no-cors' })
+      .then(() => console.log(`🔍 URL is accessible via fetch: ${url}`))
+      .catch(fetchError => console.log(`🔍 URL fetch failed: ${url}`, fetchError));
+  };
 
   return (
     <div className="space-y-6">
@@ -333,7 +346,9 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                     src={result.bimi.logoUrl} 
                                     alt="BIMI Logo" 
                                     className="max-w-full max-h-24 mx-auto"
+                                    onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
                                     onError={(e) => {
+                                      handleImageError(result.bimi.logoUrl!, e);
                                       (e.target as HTMLImageElement).style.display = 'none';
                                       (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                                     }}
@@ -341,10 +356,16 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                   <div className="hidden text-gray-500">
                                     <Image className="h-8 w-8 mx-auto mb-1" />
                                     <p className="text-sm">Logo failed to load</p>
+                                    <p className="text-xs text-gray-400 mt-1">Check console for details</p>
                                   </div>
                                   <div className="text-xs text-gray-600">
                                     <div>Size: SVG (Scalable)</div>
                                     <div>Format: SVG Tiny PS</div>
+                                    <div className="mt-1 text-blue-600">
+                                      <a href={result.bimi.logoUrl} target="_blank" rel="noopener noreferrer">
+                                        View in new tab
+                                      </a>
+                                    </div>
                                   </div>
                                 </div>
                               ) : (
@@ -364,7 +385,9 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                   src={result.websiteLogo} 
                                   alt="Website Logo" 
                                   className="max-w-full max-h-24 mx-auto"
+                                  onLoad={() => console.log(`✅ Website logo loaded: ${result.websiteLogo}`)}
                                   onError={(e) => {
+                                    console.log(`❌ Website logo failed: ${result.websiteLogo}`);
                                     (e.target as HTMLImageElement).style.display = 'none';
                                     (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
                                   }}
