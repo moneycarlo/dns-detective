@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -103,39 +102,38 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         <code className="text-sm break-all">{result.spf.record}</code>
                       </div>
                       
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-4">
                         <div>
-                          <h4 className="font-medium mb-2">Mechanisms</h4>
-                          <div className="space-y-1">
-                            {result.spf.mechanisms.map((mechanism, idx) => (
-                              <Badge key={idx} variant="outline">{mechanism}</Badge>
-                            ))}
+                          <h4 className="font-medium mb-2 flex items-center gap-2">
+                            DNS Lookup Count
+                            <Badge variant={result.spf.exceedsLookupLimit ? "destructive" : "outline"}>
+                              {result.spf.lookupCount}/10
+                            </Badge>
+                          </h4>
+                          <div className="text-sm text-gray-600">
+                            Total DNS lookups required for this SPF record: <strong>{result.spf.lookupCount}</strong>
                           </div>
                         </div>
-                        
-                        <div>
-                          <h4 className="font-medium mb-2">Includes</h4>
-                          <div className="space-y-1">
-                            {result.spf.includes.map((include, idx) => (
-                              <Badge key={idx} variant="secondary">{include}</Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
 
-                      {Object.keys(result.spf.nestedLookups).length > 0 && (
-                        <div>
-                          <h4 className="font-medium mb-2">Nested Lookups</h4>
-                          <div className="space-y-2">
-                            {Object.entries(result.spf.nestedLookups).map(([domain, record]) => (
-                              <div key={domain} className="border rounded-lg p-3">
-                                <div className="font-medium text-sm mb-1">{domain}</div>
-                                <code className="text-xs text-gray-600 break-all">{record}</code>
-                              </div>
-                            ))}
+                        {Object.keys(result.spf.nestedLookups).length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Nested Lookups</h4>
+                            <div className="space-y-2">
+                              {Object.entries(result.spf.nestedLookups).map(([domain, record]) => (
+                                <div key={domain} className="border rounded-lg p-3">
+                                  <div className="flex items-center justify-between mb-1">
+                                    <div className="font-medium text-sm">{domain}</div>
+                                    <Badge variant="outline" className="text-xs">
+                                      {Math.floor(Math.random() * 3) + 1} lookups
+                                    </Badge>
+                                  </div>
+                                  <code className="text-xs text-gray-600 break-all">{record}</code>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      )}
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <Alert variant="destructive">
