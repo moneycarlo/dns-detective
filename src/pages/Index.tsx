@@ -138,7 +138,7 @@ const Index = () => {
     // Determine if domain has records based on consistent logic
     const hasSpf = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 1; // 80% chance
     const hasDmarc = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 2; // 70% chance  
-    const hasBimi = bimiLogos[domain.toLowerCase()] || Math.abs(domainHash) % 10 > 6; // 30% chance or if we have a real logo
+    const hasBimi = !!bimiLogos[domain.toLowerCase()] || Math.abs(domainHash) % 10 > 6; // 30% chance or if we have a real logo
     
     let spfLookupCount = 0;
     let exceedsLimit = false;
