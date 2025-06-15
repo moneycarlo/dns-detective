@@ -27,6 +27,7 @@ export interface DomainResult {
     ruaEmails: string[];
     rufEmails: string[];
     errors: string[];
+    warnings: string[];
   };
   bimi: {
     record: string | null;

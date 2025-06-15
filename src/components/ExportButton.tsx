@@ -37,7 +37,7 @@ export const ExportButton: React.FC<ExportButtonProps> = ({ results }) => {
       result.domain,
       result.dmarc.record ? `"${result.dmarc.record.replace(/"/g, '""')}"` : 'No Record',
       result.dmarc.errors.length > 0 ? `"${result.dmarc.errors.join('; ')}"` : '',
-      '', // Warnings column (empty for now)
+      result.dmarc.warnings.length > 0 ? `"${result.dmarc.warnings.join('; ')}"` : '',
       result.dmarc.record ? 'DMARC1' : '',
       result.dmarc.policy || '',
       result.dmarc.subdomainPolicy || '',

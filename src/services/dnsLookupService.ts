@@ -73,6 +73,23 @@ const queryDnsRecord = async (domain: string, recordType: string): Promise<strin
   }
 };
 
+// Check if external domain is authorized to receive DMARC reports
+const checkDmarcReportingAuthorization = async (reportingDomain: string, organizationDomain: string): Promise<boolean> => {
+  if (reportingDomain === organizationDomain) {
+    return true; // Same domain, always authorized
+  }
+  
+  // Check for authorization record at reportingDomain._report._dmarc.organizationDomain
+  const authorizationDomain = `${reportingDomain}._report._dmarc.${organizationDomain}`;
+  const authRecord = await queryDnsRecord(authorizationDomain, 'TXT');
+  
+  if (authRecord && authRecord.includes('v=DMARC1')) {
+    return true;
+  }
+  
+  return false;
+};
+
 const parseSPFRecord = (record: string) => {
   const mechanisms = [];
   const includes = [];
@@ -104,7 +121,7 @@ const parseSPFRecord = (record: string) => {
   };
 };
 
-const parseDMARCRecord = (record: string) => {
+const parseDMARCRecord = async (record: string, domain: string) => {
   const pairs = record.split(';').map(pair => pair.trim());
   let policy = '';
   let subdomainPolicy = '';
@@ -117,6 +134,7 @@ const parseDMARCRecord = (record: string) => {
   const reportingEmails: string[] = [];
   const ruaEmails: string[] = [];
   const rufEmails: string[] = [];
+  const warnings: string[] = [];
   
   for (const pair of pairs) {
     if (pair.startsWith('p=')) {
@@ -150,6 +168,18 @@ const parseDMARCRecord = (record: string) => {
     }
   }
   
+  // Validate RUA and RUF domain authorizations
+  const allReportingEmails = [...ruaEmails, ...rufEmails];
+  for (const email of allReportingEmails) {
+    const emailDomain = email.split('@')[1];
+    if (emailDomain && emailDomain !== domain) {
+      const isAuthorized = await checkDmarcReportingAuthorization(emailDomain, domain);
+      if (!isAuthorized) {
+        warnings.push(`External domain '${emailDomain}' may not be authorized to receive DMARC reports for '${domain}'. Check for authorization record at ${emailDomain}._report._dmarc.${domain}`);
+      }
+    }
+  }
+  
   return {
     policy,
     subdomainPolicy,
@@ -161,7 +191,8 @@ const parseDMARCRecord = (record: string) => {
     ri,
     reportingEmails: [...new Set(reportingEmails)], // Remove duplicates
     ruaEmails,
-    rufEmails
+    rufEmails,
+    warnings
   };
 };
 
@@ -214,7 +245,8 @@ export const performDnsLookup = async (domainList: string[]): Promise<DomainResu
       reportingEmails: [],
       ruaEmails: [],
       rufEmails: [],
-      errors: []
+      errors: [],
+      warnings: []
     },
     bimi: {
       record: null,
@@ -289,11 +321,12 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     reportingEmails: [] as string[],
     ruaEmails: [] as string[],
     rufEmails: [] as string[],
-    errors: [] as string[]
+    errors: [] as string[],
+    warnings: [] as string[]
   };
   
   if (dmarcRecord && dmarcRecord.includes('v=DMARC1')) {
-    const parsed = parseDMARCRecord(dmarcRecord);
+    const parsed = await parseDMARCRecord(dmarcRecord, domain);
     dmarcData = {
       record: dmarcRecord,
       valid: true,
@@ -308,7 +341,8 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
       reportingEmails: parsed.reportingEmails,
       ruaEmails: parsed.ruaEmails,
       rufEmails: parsed.rufEmails,
-      errors: []
+      errors: [],
+      warnings: parsed.warnings
     };
   }
   
