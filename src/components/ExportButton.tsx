@@ -41,14 +41,14 @@ export const ExportButton: React.FC<ExportButtonProps> = ({ results }) => {
       result.dmarc.record ? 'DMARC1' : '',
       result.dmarc.policy || '',
       result.dmarc.subdomainPolicy || '',
-      '', // adkim
-      '', // aspf
-      result.dmarc.percentage || '',
-      '', // fo
-      '', // rf
-      '', // ri
-      result.dmarc.reportingEmails.filter(email => email.includes('rua')).join('; ') || '',
-      result.dmarc.reportingEmails.filter(email => email.includes('ruf')).join('; ') || ''
+      result.dmarc.adkim || 'r',
+      result.dmarc.aspf || 'r',
+      result.dmarc.percentage || '100',
+      result.dmarc.fo || '0',
+      result.dmarc.rf || 'afrf',
+      result.dmarc.ri || '86400',
+      result.dmarc.ruaEmails ? result.dmarc.ruaEmails.join('; ') : '',
+      result.dmarc.rufEmails ? result.dmarc.rufEmails.join('; ') : ''
     ].join(',')).join('\n');
     
     const csvData = csvHeader + csvContent;

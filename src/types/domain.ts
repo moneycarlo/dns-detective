@@ -18,7 +18,14 @@ export interface DomainResult {
     policy: string;
     subdomainPolicy: string;
     percentage: number;
+    adkim: string;
+    aspf: string;
+    fo: string;
+    rf: string;
+    ri: string;
     reportingEmails: string[];
+    ruaEmails: string[];
+    rufEmails: string[];
     errors: string[];
   };
   bimi: {
