@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -273,7 +274,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       <code className="text-sm break-all">{result.bimi.record}</code>
                     </div>
                     
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <h4 className="font-medium">Record Details</h4>
                         <div className="space-y-3">
@@ -363,121 +364,164 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       
                       <div className="space-y-4">
                         <h4 className="font-medium">Email Preview</h4>
-                        {/* Phone-style mockup */}
-                        <div className="mx-auto max-w-sm">
-                          <div className="bg-gray-900 rounded-3xl p-2 shadow-2xl">
-                            {/* Phone bezel */}
-                            <div className="bg-black rounded-2xl overflow-hidden">
-                              {/* Status bar */}
-                              <div className="bg-black text-white text-xs px-4 py-2 flex justify-between items-center">
-                                <span>9:41</span>
-                                <div className="flex items-center gap-1">
-                                  <div className="w-4 h-2 border border-white rounded-sm">
-                                    <div className="w-3 h-1 bg-white rounded-sm"></div>
+                        {/* Realistic iPhone-style mockup */}
+                        <div className="mx-auto max-w-xs">
+                          <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                            {/* iPhone notch and frame */}
+                            <div className="bg-black rounded-[2rem] relative overflow-hidden">
+                              {/* Dynamic Island */}
+                              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div>
+                              
+                              {/* Screen */}
+                              <div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[28rem]">
+                                {/* Status bar */}
+                                <div className="bg-white px-6 py-3 flex justify-between items-center text-black text-sm font-medium">
+                                  <span>9:41</span>
+                                  <div className="flex items-center gap-1">
+                                    <div className="flex gap-1">
+                                      <div className="w-1 h-1 bg-black rounded-full"></div>
+                                      <div className="w-1 h-1 bg-black rounded-full"></div>
+                                      <div className="w-1 h-1 bg-black rounded-full"></div>
+                                      <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+                                    </div>
+                                    <div className="ml-1 w-6 h-3 border border-black rounded-sm relative">
+                                      <div className="absolute right-[-2px] top-1 w-1 h-1 bg-black rounded-sm"></div>
+                                      <div className="w-4 h-2 bg-black rounded-sm m-0.5"></div>
+                                    </div>
                                   </div>
                                 </div>
-                              </div>
-                              
-                              {/* Email app */}
-                              <div className="bg-white">
-                                {/* Email header */}
-                                <div className="bg-blue-500 text-white p-3 flex items-center justify-between">
-                                  <div className="flex items-center gap-2">
-                                    <Mail className="h-5 w-5" />
-                                    <span className="font-medium">Inbox</span>
+                                
+                                {/* Mail app header */}
+                                <div className="bg-blue-600 px-4 py-4 flex items-center justify-between">
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-white text-lg font-semibold">Mailboxes</div>
                                   </div>
-                                  <div className="w-6 h-6 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
-                                    <span className="text-xs">3</span>
+                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                                    <span className="text-white text-sm font-medium">✉</span>
+                                  </div>
+                                </div>
+                                
+                                {/* Inbox header */}
+                                <div className="bg-gray-50 px-4 py-3 border-b">
+                                  <div className="flex items-center justify-between">
+                                    <h2 className="font-semibold text-gray-900">Inbox</h2>
+                                    <span className="text-blue-600 text-sm">Edit</span>
                                   </div>
                                 </div>
                                 
                                 {/* Email list */}
                                 <div className="divide-y divide-gray-100">
-                                  {/* BIMI Email */}
-                                  <div className="p-3 bg-blue-50">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center overflow-hidden border-2 border-blue-200">
+                                  {/* BIMI Enhanced Email */}
+                                  <div className="px-4 py-4 bg-blue-25">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                                         {result.bimi.logoUrl ? (
                                           <object 
                                             data={result.bimi.logoUrl} 
                                             type="image/svg+xml"
-                                            className="w-8 h-8"
+                                            className="w-10 h-10"
                                           >
                                             <img 
                                               src={result.bimi.logoUrl} 
                                               alt="BIMI Logo" 
-                                              className="w-8 h-8 object-contain"
+                                              className="w-10 h-10 object-contain"
                                             />
                                           </object>
                                         ) : (
-                                          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
                                             {result.domain.charAt(0).toUpperCase()}
                                           </div>
                                         )}
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                          <div className="font-medium text-gray-900 truncate text-sm">
+                                        <div className="flex items-start justify-between mb-1">
+                                          <div className="font-semibold text-gray-900 text-sm truncate">
                                             {result.domain}
                                           </div>
-                                          <div className="text-xs text-gray-500">
-                                            9:15 AM
+                                          <div className="text-xs text-blue-600 font-medium">
+                                            2:30 PM
                                           </div>
                                         </div>
-                                        <div className="text-sm font-medium text-gray-800 truncate">
-                                          Welcome to our service! ✨
+                                        <div className="text-sm font-medium text-gray-800 truncate mb-1">
+                                          Welcome to {result.domain}! 🎉
                                         </div>
-                                        <div className="text-xs text-gray-500 truncate">
-                                          Thank you for joining us. We're excited to...
+                                        <div className="text-xs text-gray-600 truncate leading-relaxed">
+                                          Thank you for joining our community. We're excited to have you on board and look forward to...
                                         </div>
                                       </div>
                                     </div>
                                   </div>
                                   
-                                  {/* Regular emails */}
-                                  <div className="p-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
-                                        <span className="text-white font-medium text-sm">JD</span>
+                                  {/* Regular email 1 */}
+                                  <div className="px-4 py-4">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        AM
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                          <div className="font-medium text-gray-900 truncate text-sm">
-                                            John Doe
+                                        <div className="flex items-start justify-between mb-1">
+                                          <div className="font-semibold text-gray-900 text-sm truncate">
+                                            Apple Music
                                           </div>
                                           <div className="text-xs text-gray-500">
-                                            8:45 AM
+                                            1:15 PM
                                           </div>
                                         </div>
-                                        <div className="text-sm text-gray-600 truncate">
-                                          Meeting Update
+                                        <div className="text-sm text-gray-700 truncate mb-1">
+                                          Your Weekly Mix is Ready
                                         </div>
                                         <div className="text-xs text-gray-500 truncate">
-                                          The meeting has been rescheduled...
+                                          Discover new songs picked just for you...
                                         </div>
                                       </div>
                                     </div>
                                   </div>
                                   
-                                  <div className="p-3">
-                                    <div className="flex items-center gap-3">
-                                      <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
-                                        <span className="text-white font-medium text-sm">TS</span>
+                                  {/* Regular email 2 */}
+                                  <div className="px-4 py-4">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        MS
                                       </div>
                                       <div className="flex-1 min-w-0">
-                                        <div className="flex items-center justify-between">
-                                          <div className="font-medium text-gray-900 truncate text-sm">
-                                            Team Support
+                                        <div className="flex items-start justify-between mb-1">
+                                          <div className="font-semibold text-gray-900 text-sm truncate">
+                                            Microsoft Store
                                           </div>
                                           <div className="text-xs text-gray-500">
-                                            Yesterday
+                                            12:45 PM
                                           </div>
                                         </div>
-                                        <div className="text-sm text-gray-600 truncate">
-                                          Your ticket has been resolved
+                                        <div className="text-sm text-gray-700 truncate mb-1">
+                                          App updates available
                                         </div>
                                         <div className="text-xs text-gray-500 truncate">
-                                          Thank you for contacting support...
+                                          5 apps have updates ready to install...
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Regular email 3 */}
+                                  <div className="px-4 py-4">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
+                                        SL
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex items-start justify-between mb-1">
+                                          <div className="font-semibold text-gray-900 text-sm truncate">
+                                            Slack
+                                          </div>
+                                          <div className="text-xs text-gray-500">
+                                            11:30 AM
+                                          </div>
+                                        </div>
+                                        <div className="text-sm text-gray-700 truncate mb-1">
+                                          You have 3 unread messages
+                                        </div>
+                                        <div className="text-xs text-gray-500 truncate">
+                                          Check your team updates in #general...
                                         </div>
                                       </div>
                                     </div>
@@ -488,11 +532,11 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                           </div>
                         </div>
                         
-                        <div className="text-xs text-gray-600 space-y-1">
+                        <div className="text-xs text-gray-600 space-y-1 text-center">
                           <div className="font-medium">BIMI Display Preview</div>
-                          <div>Shows how your brand logo appears in email clients</div>
+                          <div>Shows how your brand logo appears in email clients that support BIMI</div>
                           {result.bimi.logoUrl && (
-                            <div className="text-green-600">✓ Logo detected and displayed</div>
+                            <div className="text-green-600">✓ Logo detected and will be displayed</div>
                           )}
                         </div>
                       </div>
