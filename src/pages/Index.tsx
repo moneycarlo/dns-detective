@@ -118,16 +118,23 @@ const Index = () => {
     const hasDmarc = Math.random() > 0.3;
     const hasBimi = Math.random() > 0.7;
     
-    // Generate SPF lookup count (1-15 to test the limit)
-    const spfLookupCount = Math.floor(Math.random() * 15) + 1;
-    const exceedsLimit = spfLookupCount > 10;
+    let spfLookupCount = 0;
+    let exceedsLimit = false;
+    let spfErrors: string[] = [];
     
-    const spfErrors = [];
-    if (!hasSpf) {
+    if (hasSpf) {
+      // Only generate lookup count if SPF record exists
+      spfLookupCount = Math.floor(Math.random() * 15) + 1;
+      exceedsLimit = spfLookupCount > 10;
+      
+      if (exceedsLimit) {
+        spfErrors.push(`Too many DNS lookups (${spfLookupCount}/10). This may cause SPF to fail.`);
+      }
+    } else {
+      // No SPF record means no lookups
       spfErrors.push('No SPF record found');
-    }
-    if (exceedsLimit) {
-      spfErrors.push(`Too many DNS lookups (${spfLookupCount}/10). This may cause SPF to fail.`);
+      spfLookupCount = 0;
+      exceedsLimit = false;
     }
     
     return {

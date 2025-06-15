@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ interface DnsResultsProps {
 }
 
 export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
-  const getStatusBadge = (status: string, valid?: boolean) => {
+  const getStatusBadge = (status: string, valid?: boolean, hasRecord?: boolean) => {
     switch (status) {
       case 'pending':
         return <Badge variant="outline" className="bg-yellow-50 text-yellow-700 border-yellow-200">
@@ -25,6 +26,12 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
           Error
         </Badge>;
       case 'completed':
+        if (hasRecord === false) {
+          return <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            <AlertTriangle className="h-3 w-3 mr-1" />
+            Not Found
+          </Badge>;
+        }
         return valid ? (
           <Badge variant="default" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle className="h-3 w-3 mr-1" />
@@ -93,7 +100,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                 <TabsContent value="spf" className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">SPF Record</h3>
-                    {getStatusBadge('completed', result.spf.valid)}
+                    {getStatusBadge('completed', result.spf.valid, !!result.spf.record)}
                   </div>
                   
                   {result.spf.record ? (
@@ -144,7 +151,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                     </Alert>
                   )}
 
-                  {result.spf.errors.length > 0 && (
+                  {result.spf.errors.length > 0 && result.spf.record && (
                     <div className="space-y-2">
                       {result.spf.errors.map((error, idx) => (
                         <Alert key={idx} variant="destructive">
@@ -159,7 +166,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                 <TabsContent value="dmarc" className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">DMARC Record</h3>
-                    {getStatusBadge('completed', result.dmarc.valid)}
+                    {getStatusBadge('completed', result.dmarc.valid, !!result.dmarc.record)}
                   </div>
                   
                   {result.dmarc.record ? (
@@ -213,7 +220,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                     </Alert>
                   )}
 
-                  {result.dmarc.errors.length > 0 && (
+                  {result.dmarc.errors.length > 0 && result.dmarc.record && (
                     <div className="space-y-2">
                       {result.dmarc.errors.map((error, idx) => (
                         <Alert key={idx} variant="destructive">
@@ -228,7 +235,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                 <TabsContent value="bimi" className="p-6 space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold">BIMI Record</h3>
-                    {getStatusBadge('completed', result.bimi.valid)}
+                    {getStatusBadge('completed', result.bimi.valid, !!result.bimi.record)}
                   </div>
                   
                   {result.bimi.record ? (
@@ -293,7 +300,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                     </Alert>
                   )}
 
-                  {result.bimi.errors.length > 0 && (
+                  {result.bimi.errors.length > 0 && result.bimi.record && (
                     <div className="space-y-2">
                       {result.bimi.errors.map((error, idx) => (
                         <Alert key={idx} variant="destructive">
