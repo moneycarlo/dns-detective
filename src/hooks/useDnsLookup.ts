@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { DomainResult } from '@/types/domain';
-import { performDnsLookup, simulateDnsLookup } from '@/services/dnsLookupService';
+import { performDnsLookup, performActualDnsLookup } from '@/services/dnsLookupService';
 
 export const useDnsLookup = () => {
   const [results, setResults] = useState<DomainResult[]>([]);
@@ -13,19 +13,21 @@ export const useDnsLookup = () => {
     const initialResults = await performDnsLookup(domainList);
     setResults(initialResults);
 
-    // Simulate DNS lookups (in a real app, this would call actual DNS APIs)
+    // Perform actual DNS lookups
     for (let i = 0; i < domainList.length; i++) {
       const domain = domainList[i];
       
       try {
-        const mockResult = await simulateDnsLookup(domain);
+        console.log(`🔍 Looking up DNS records for: ${domain}`);
+        const actualResult = await performActualDnsLookup(domain);
         
         setResults(prev => 
           prev.map((result, index) => 
-            index === i ? { ...mockResult, status: 'completed' as const } : result
+            index === i ? actualResult : result
           )
         );
       } catch (error) {
+        console.error(`❌ DNS lookup failed for ${domain}:`, error);
         setResults(prev => 
           prev.map((result, index) => 
             index === i ? { ...result, status: 'error' as const } : result
