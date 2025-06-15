@@ -37,8 +37,8 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
             Valid
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
-            Has Issues
+          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
+            Found
           </Badge>
         );
       default:
@@ -79,7 +79,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
   return (
     <div className="space-y-6">
       <Tabs defaultValue="spf" className="w-full">
-        <TabsList className="grid w-full grid-cols-4 bg-gray-50">
+        <TabsList className="grid w-full grid-cols-3 bg-gray-50">
           <TabsTrigger value="spf" className="flex items-center gap-2">
             <Shield className="h-4 w-4" />
             SPF Records
@@ -91,10 +91,6 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
           <TabsTrigger value="bimi" className="flex items-center gap-2">
             <Image className="h-4 w-4" />
             BIMI Records
-          </TabsTrigger>
-          <TabsTrigger value="logo" className="flex items-center gap-2">
-            <Image className="h-4 w-4" />
-            Logo Preview
           </TabsTrigger>
         </TabsList>
 
@@ -255,55 +251,132 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                 </div>
                 
                 {result.bimi.record ? (
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <code className="text-sm break-all">{result.bimi.record}</code>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h4 className="font-medium mb-2">Logo URL</h4>
-                        {result.bimi.logoUrl ? (
-                          <div className="flex items-center gap-2">
-                            <a 
-                              href={result.bimi.logoUrl} 
-                              target="_blank" 
-                              rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                            >
-                              {result.bimi.logoUrl}
-                            </a>
-                            <ExternalLink className="h-4 w-4 text-gray-400" />
-                          </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">Not specified</span>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <h4 className="font-medium mb-2">Certificate</h4>
-                        {result.bimi.certificateUrl ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                              <a 
-                                href={result.bimi.certificateUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                              >
-                                Certificate URL
-                              </a>
-                              <ExternalLink className="h-4 w-4 text-gray-400" />
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Record Details</h4>
+                        <div className="space-y-3">
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Version</label>
+                            <div className="mt-1">
+                              <Badge variant="outline">BIMI1</Badge>
                             </div>
-                            {result.bimi.certificateExpiry && (
-                              <div className="text-sm">
-                                <span className="font-medium">Expires:</span> {result.bimi.certificateExpiry}
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Base Profile</label>
+                            <div className="mt-1">
+                              <Badge variant="outline">SVG Tiny PS</Badge>
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Logo URL</label>
+                            {result.bimi.logoUrl ? (
+                              <div className="mt-1 flex items-center gap-2">
+                                <a 
+                                  href={result.bimi.logoUrl} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                >
+                                  {result.bimi.logoUrl}
+                                </a>
+                                <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
                               </div>
+                            ) : (
+                              <span className="text-gray-500 text-sm">Not specified</span>
                             )}
                           </div>
-                        ) : (
-                          <span className="text-gray-500 text-sm">Not specified</span>
-                        )}
+                          
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Certificate</label>
+                            {result.bimi.certificateUrl ? (
+                              <div className="mt-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <a 
+                                    href={result.bimi.certificateUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                  >
+                                    Certificate URL
+                                  </a>
+                                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                                </div>
+                                {result.bimi.certificateExpiry && (
+                                  <div className="text-sm">
+                                    <span className="font-medium">Expires:</span> {result.bimi.certificateExpiry}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-gray-500 text-sm">Not specified</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Logo Preview</h4>
+                        <div className="space-y-4">
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">BIMI Logo</h5>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-white">
+                              {result.bimi.logoUrl ? (
+                                <div className="space-y-2">
+                                  <img 
+                                    src={result.bimi.logoUrl} 
+                                    alt="BIMI Logo" 
+                                    className="max-w-full max-h-24 mx-auto"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.display = 'none';
+                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                    }}
+                                  />
+                                  <div className="hidden text-gray-500">
+                                    <Image className="h-8 w-8 mx-auto mb-1" />
+                                    <p className="text-sm">Logo failed to load</p>
+                                  </div>
+                                  <div className="text-xs text-gray-600">
+                                    <div>Size: SVG (Scalable)</div>
+                                    <div>Format: SVG Tiny PS</div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-gray-500">
+                                  <Image className="h-8 w-8 mx-auto mb-2" />
+                                  <p className="text-sm">No BIMI logo available</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">Website Logo (Reference)</h5>
+                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
+                              {result.websiteLogo ? (
+                                <img 
+                                  src={result.websiteLogo} 
+                                  alt="Website Logo" 
+                                  className="max-w-full max-h-24 mx-auto"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                  }}
+                                />
+                              ) : null}
+                              <div className={`text-gray-500 ${result.websiteLogo ? 'hidden' : ''}`}>
+                                <Image className="h-8 w-8 mx-auto mb-2" />
+                                <p className="text-sm">No website logo found</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -326,62 +399,6 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                     ))}
                   </div>
                 )}
-              </div>
-            ))
-          )}
-        </TabsContent>
-
-        <TabsContent value="logo" className="space-y-6 mt-6">
-          {results.map((result) =>
-            renderDomainCard(result, (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">Logo Preview</h3>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium mb-3">BIMI Logo</h4>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      {result.bimi.logoUrl ? (
-                        <img 
-                          src={result.bimi.logoUrl} 
-                          alt="BIMI Logo" 
-                          className="max-w-full max-h-32 mx-auto"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="text-gray-500">
-                          <Image className="h-12 w-12 mx-auto mb-2" />
-                          <p>No BIMI logo available</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="font-medium mb-3">Website Logo</h4>
-                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                      {result.websiteLogo ? (
-                        <img 
-                          src={result.websiteLogo} 
-                          alt="Website Logo" 
-                          className="max-w-full max-h-32 mx-auto"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="text-gray-500">
-                          <Image className="h-12 w-12 mx-auto mb-2" />
-                          <p>No website logo found</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
               </div>
             ))
           )}
