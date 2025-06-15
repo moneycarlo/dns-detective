@@ -89,6 +89,12 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
       .catch(fetchError => console.log(`🔍 URL fetch failed: ${url}`, fetchError));
   };
 
+  const parseBimiVersion = (record: string | null): string => {
+    if (!record) return 'N/A';
+    const versionMatch = record.match(/v=([^;]+)/);
+    return versionMatch ? versionMatch[1] : 'BIMI1';
+  };
+
   return (
     <div className="space-y-6">
       <Tabs defaultValue="spf" className="w-full">
@@ -276,7 +282,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                           <div>
                             <label className="text-sm font-medium text-gray-700">Version</label>
                             <div className="mt-1">
-                              <Badge variant="outline">BIMI1</Badge>
+                              <Badge variant="outline">{parseBimiVersion(result.bimi.record)}</Badge>
                             </div>
                           </div>
                           
@@ -338,29 +344,39 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         <h4 className="font-medium">Logo Preview</h4>
                         <div className="space-y-4">
                           <div>
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">BIMI Logo</h5>
+                            <h5 className="text-sm font-medium text-gray-700 mb-2">BIMI Logo (SVG)</h5>
                             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-white">
                               {result.bimi.logoUrl ? (
                                 <div className="space-y-2">
-                                  <img 
-                                    src={result.bimi.logoUrl} 
-                                    alt="BIMI Logo" 
+                                  <object 
+                                    data={result.bimi.logoUrl} 
+                                    type="image/svg+xml"
                                     className="max-w-full max-h-24 mx-auto"
                                     onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
                                     onError={(e) => {
                                       handleImageError(result.bimi.logoUrl!, e);
-                                      (e.target as HTMLImageElement).style.display = 'none';
-                                      (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                      (e.target as HTMLObjectElement).style.display = 'none';
+                                      (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
                                     }}
-                                  />
+                                  >
+                                    <img 
+                                      src={result.bimi.logoUrl} 
+                                      alt="BIMI Logo Fallback" 
+                                      className="max-w-full max-h-24 mx-auto"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.display = 'none';
+                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    />
+                                  </object>
                                   <div className="hidden text-gray-500">
                                     <Image className="h-8 w-8 mx-auto mb-1" />
-                                    <p className="text-sm">Logo failed to load</p>
-                                    <p className="text-xs text-gray-400 mt-1">Check console for details</p>
+                                    <p className="text-sm">SVG failed to load</p>
+                                    <p className="text-xs text-gray-400 mt-1">May be blocked by CORS policy</p>
                                   </div>
                                   <div className="text-xs text-gray-600">
-                                    <div>Size: SVG (Scalable)</div>
-                                    <div>Format: SVG Tiny PS</div>
+                                    <div>Format: SVG</div>
+                                    <div>Type: Vector Graphics</div>
                                     <div className="mt-1 text-blue-600">
                                       <a href={result.bimi.logoUrl} target="_blank" rel="noopener noreferrer">
                                         View in new tab
