@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -83,16 +84,14 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
     console.log(`❌ BIMI logo failed to load: ${url}`);
     console.log('Error details:', error);
     
-    // Try to fetch the URL to get more details about the failure
     fetch(url, { mode: 'no-cors' })
       .then(() => console.log(`🔍 URL is accessible via fetch: ${url}`))
       .catch(fetchError => console.log(`🔍 URL fetch failed: ${url}`, fetchError));
   };
 
-  const parseBimiVersion = (record: string | null): string => {
-    if (!record) return 'N/A';
-    const versionMatch = record.match(/v=([^;]+)/);
-    return versionMatch ? versionMatch[1] : 'BIMI1';
+  const isCertificateExpired = (expiryDate: string | null): boolean => {
+    if (!expiryDate) return false;
+    return new Date(expiryDate) < new Date();
   };
 
   return (
@@ -280,13 +279,6 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         <h4 className="font-medium">Record Details</h4>
                         <div className="space-y-3">
                           <div>
-                            <label className="text-sm font-medium text-gray-700">Version</label>
-                            <div className="mt-1">
-                              <Badge variant="outline">{parseBimiVersion(result.bimi.record)}</Badge>
-                            </div>
-                          </div>
-                          
-                          <div>
                             <label className="text-sm font-medium text-gray-700">Base Profile</label>
                             <div className="mt-1">
                               <Badge variant="outline">SVG Tiny PS</Badge>
@@ -329,7 +321,15 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                 </div>
                                 {result.bimi.certificateExpiry && (
                                   <div className="text-sm">
-                                    <span className="font-medium">Expires:</span> {result.bimi.certificateExpiry}
+                                    <span className="font-medium">Expires:</span> 
+                                    <span className={isCertificateExpired(result.bimi.certificateExpiry) ? 'text-red-600 font-medium' : ''}>
+                                      {result.bimi.certificateExpiry}
+                                    </span>
+                                    {isCertificateExpired(result.bimi.certificateExpiry) && (
+                                      <div className="text-red-600 text-xs mt-1">
+                                        ⚠️ Certificate has expired
+                                      </div>
+                                    )}
                                   </div>
                                 )}
                               </div>
@@ -341,80 +341,105 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       </div>
                       
                       <div className="space-y-4">
-                        <h4 className="font-medium">Logo Preview</h4>
-                        <div className="space-y-4">
-                          <div>
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">BIMI Logo (SVG)</h5>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-white">
-                              {result.bimi.logoUrl ? (
-                                <div className="space-y-2">
-                                  <object 
-                                    data={result.bimi.logoUrl} 
-                                    type="image/svg+xml"
-                                    className="max-w-full max-h-24 mx-auto"
-                                    onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
-                                    onError={(e) => {
-                                      handleImageError(result.bimi.logoUrl!, e);
-                                      (e.target as HTMLObjectElement).style.display = 'none';
-                                      (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
-                                    }}
-                                  >
-                                    <img 
-                                      src={result.bimi.logoUrl} 
-                                      alt="BIMI Logo Fallback" 
-                                      className="max-w-full max-h-24 mx-auto"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                      }}
-                                    />
-                                  </object>
-                                  <div className="hidden text-gray-500">
-                                    <Image className="h-8 w-8 mx-auto mb-1" />
-                                    <p className="text-sm">SVG failed to load</p>
-                                    <p className="text-xs text-gray-400 mt-1">May be blocked by CORS policy</p>
-                                  </div>
-                                  <div className="text-xs text-gray-600">
-                                    <div>Format: SVG</div>
-                                    <div>Type: Vector Graphics</div>
-                                    <div className="mt-1 text-blue-600">
-                                      <a href={result.bimi.logoUrl} target="_blank" rel="noopener noreferrer">
-                                        View in new tab
-                                      </a>
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <div className="text-gray-500">
-                                  <Image className="h-8 w-8 mx-auto mb-2" />
-                                  <p className="text-sm">No BIMI logo available</p>
-                                </div>
-                              )}
+                        <h4 className="font-medium">Email Mockup</h4>
+                        <div className="bg-white border-2 border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                          {/* Email Header */}
+                          <div className="bg-blue-500 text-white p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <div className="w-6 h-6 bg-white bg-opacity-20 rounded flex items-center justify-center">
+                                <Mail className="h-4 w-4" />
+                              </div>
+                              <span className="font-medium">Inbox</span>
                             </div>
                           </div>
                           
-                          <div>
-                            <h5 className="text-sm font-medium text-gray-700 mb-2">Website Logo (Reference)</h5>
-                            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center bg-gray-50">
-                              {result.websiteLogo ? (
-                                <img 
-                                  src={result.websiteLogo} 
-                                  alt="Website Logo" 
-                                  className="max-w-full max-h-24 mx-auto"
-                                  onLoad={() => console.log(`✅ Website logo loaded: ${result.websiteLogo}`)}
-                                  onError={(e) => {
-                                    console.log(`❌ Website logo failed: ${result.websiteLogo}`);
-                                    (e.target as HTMLImageElement).style.display = 'none';
-                                    (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                  }}
-                                />
-                              ) : null}
-                              <div className={`text-gray-500 ${result.websiteLogo ? 'hidden' : ''}`}>
-                                <Image className="h-8 w-8 mx-auto mb-2" />
-                                <p className="text-sm">No website logo found</p>
+                          {/* Email List */}
+                          <div className="divide-y divide-gray-100">
+                            {/* BIMI Email */}
+                            <div className="p-3 hover:bg-gray-50 transition-colors">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+                                  {result.bimi.logoUrl ? (
+                                    <object 
+                                      data={result.bimi.logoUrl} 
+                                      type="image/svg+xml"
+                                      className="w-8 h-8"
+                                      onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
+                                      onError={(e) => {
+                                        handleImageError(result.bimi.logoUrl!, e);
+                                        (e.target as HTMLObjectElement).style.display = 'none';
+                                        (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
+                                      }}
+                                    >
+                                      <img 
+                                        src={result.bimi.logoUrl} 
+                                        alt="BIMI Logo" 
+                                        className="w-8 h-8 object-contain"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.display = 'none';
+                                          (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
+                                        }}
+                                      />
+                                    </object>
+                                  ) : null}
+                                  <div className={`text-gray-400 ${result.bimi.logoUrl ? 'hidden' : ''}`}>
+                                    <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-bold">
+                                      {result.domain.charAt(0).toUpperCase()}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      {result.domain}
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      9:15 AM
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-medium text-gray-800 truncate">
+                                    Welcome to our service! ✨
+                                  </div>
+                                  <div className="text-sm text-gray-500 truncate">
+                                    Thank you for joining us. We're excited to...
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Sample emails without BIMI */}
+                            <div className="p-3 bg-gray-50">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                  <span className="text-white font-medium text-sm">JD</span>
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between">
+                                    <div className="font-medium text-gray-900 truncate">
+                                      John Doe
+                                    </div>
+                                    <div className="text-xs text-gray-500">
+                                      8:45 AM
+                                    </div>
+                                  </div>
+                                  <div className="text-sm font-medium text-gray-800 truncate">
+                                    Meeting Update
+                                  </div>
+                                  <div className="text-sm text-gray-500 truncate">
+                                    The meeting has been rescheduled to...
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
+                        </div>
+                        
+                        <div className="text-xs text-gray-600 space-y-1">
+                          <div className="font-medium">BIMI Display Preview</div>
+                          <div>Shows how your brand logo appears in email clients that support BIMI</div>
+                          {result.bimi.logoUrl && (
+                            <div className="text-green-600">✓ Logo detected and displayed</div>
+                          )}
                         </div>
                       </div>
                     </div>
