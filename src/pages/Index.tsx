@@ -17,6 +17,8 @@ export interface DomainResult {
     mechanisms: string[];
     errors: string[];
     nestedLookups: { [key: string]: string };
+    lookupCount: number;
+    exceedsLookupLimit: boolean;
   };
   dmarc: {
     record: string | null;
@@ -40,16 +42,15 @@ export interface DomainResult {
 }
 
 const Index = () => {
-  const [domains, setDomains] = useState<string[]>(['']);
+  const [domains, setDomains] = useState<string[]>([]);
   const [results, setResults] = useState<DomainResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLookup = async (domainList: string[]) => {
     setIsLoading(true);
-    const validDomains = domainList.filter(domain => domain.trim() !== '');
     
     // Initialize results with pending status
-    const initialResults: DomainResult[] = validDomains.map(domain => ({
+    const initialResults: DomainResult[] = domainList.map(domain => ({
       domain,
       spf: {
         record: null,
@@ -58,7 +59,9 @@ const Index = () => {
         redirects: [],
         mechanisms: [],
         errors: [],
-        nestedLookups: {}
+        nestedLookups: {},
+        lookupCount: 0,
+        exceedsLookupLimit: false
       },
       dmarc: {
         record: null,
@@ -84,8 +87,8 @@ const Index = () => {
     setResults(initialResults);
 
     // Simulate DNS lookups (in a real app, this would call actual DNS APIs)
-    for (let i = 0; i < validDomains.length; i++) {
-      const domain = validDomains[i];
+    for (let i = 0; i < domainList.length; i++) {
+      const domain = domainList[i];
       
       try {
         // Simulate API delay
@@ -115,19 +118,34 @@ const Index = () => {
     const hasDmarc = Math.random() > 0.3;
     const hasBimi = Math.random() > 0.7;
     
+    // Generate SPF lookup count (1-15 to test the limit)
+    const spfLookupCount = Math.floor(Math.random() * 15) + 1;
+    const exceedsLimit = spfLookupCount > 10;
+    
+    const spfErrors = [];
+    if (!hasSpf) {
+      spfErrors.push('No SPF record found');
+    }
+    if (exceedsLimit) {
+      spfErrors.push(`Too many DNS lookups (${spfLookupCount}/10). This may cause SPF to fail.`);
+    }
+    
     return {
       domain,
       spf: {
-        record: hasSpf ? `v=spf1 include:_spf.google.com include:spf.protection.outlook.com ~all` : null,
-        valid: hasSpf,
-        includes: hasSpf ? ['_spf.google.com', 'spf.protection.outlook.com'] : [],
+        record: hasSpf ? `v=spf1 include:_spf.google.com include:spf.protection.outlook.com include:_spf.salesforce.com ~all` : null,
+        valid: hasSpf && !exceedsLimit,
+        includes: hasSpf ? ['_spf.google.com', 'spf.protection.outlook.com', '_spf.salesforce.com'] : [],
         redirects: [],
-        mechanisms: hasSpf ? ['include', 'include', '~all'] : [],
-        errors: hasSpf ? [] : ['No SPF record found'],
+        mechanisms: hasSpf ? ['include', 'include', 'include', '~all'] : [],
+        errors: spfErrors,
         nestedLookups: hasSpf ? {
           '_spf.google.com': 'v=spf1 include:_netblocks.google.com include:_netblocks2.google.com include:_netblocks3.google.com ~all',
-          'spf.protection.outlook.com': 'v=spf1 include:spf-a.outlook.com include:spf-b.outlook.com ~all'
-        } : {}
+          'spf.protection.outlook.com': 'v=spf1 include:spf-a.outlook.com include:spf-b.outlook.com ~all',
+          '_spf.salesforce.com': 'v=spf1 include:_spf1.salesforce.com include:_spf2.salesforce.com ~all'
+        } : {},
+        lookupCount: spfLookupCount,
+        exceedsLookupLimit: exceedsLimit
       },
       dmarc: {
         record: hasDmarc ? `v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain}; ruf=mailto:dmarc@${domain}; pct=100` : null,
