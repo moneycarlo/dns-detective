@@ -114,17 +114,30 @@ const Index = () => {
   };
 
   const generateMockResult = (domain: string): DomainResult => {
-    const hasSpf = Math.random() > 0.2;
-    const hasDmarc = Math.random() > 0.3;
-    const hasBimi = Math.random() > 0.7;
+    // Create a simple hash from domain name for consistent results
+    const domainHash = domain.split('').reduce((hash, char) => {
+      return ((hash << 5) - hash) + char.charCodeAt(0);
+    }, 0);
+    
+    // Well-known domains that should always have SPF records
+    const wellKnownDomains = [
+      'google.com', 'microsoft.com', 'salesforce.com', 'mailchimp.com',
+      'sendgrid.com', 'constantcontact.com', 'campaignmonitor.com',
+      'iterable.com', 'bluehornet.com', 'hubspot.com', 'marketo.com'
+    ];
+    
+    // Determine if domain has records based on consistent logic
+    const hasSpf = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 1; // 80% chance
+    const hasDmarc = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 2; // 70% chance  
+    const hasBimi = Math.abs(domainHash) % 10 > 6; // 30% chance
     
     let spfLookupCount = 0;
     let exceedsLimit = false;
     let spfErrors: string[] = [];
     
     if (hasSpf) {
-      // Only generate lookup count if SPF record exists
-      spfLookupCount = Math.floor(Math.random() * 15) + 1;
+      // Generate consistent lookup count based on domain
+      spfLookupCount = (Math.abs(domainHash) % 15) + 1;
       exceedsLimit = spfLookupCount > 10;
       
       if (exceedsLimit) {
