@@ -125,10 +125,20 @@ const Index = () => {
       'iterable.com', 'bluehornet.com', 'hubspot.com', 'marketo.com'
     ];
     
+    // Real BIMI logo URLs for known domains
+    const bimiLogos: { [key: string]: string } = {
+      'iterable.com': 'https://iterable.com/wp-content/uploads/2021/01/iterable-logo-purple.svg',
+      'mailchimp.com': 'https://eep.io/images/yzp4yrjcwpkr/c5ggvwjABLrjGVD7dNJFcx/c91c7a7a17/mailchimp-logo.svg',
+      'sendgrid.com': 'https://sendgrid.com/wp-content/themes/sgdotcom/pages/resource/brand/2016/SendGrid-Logomark.svg',
+      'constantcontact.com': 'https://www.constantcontact.com/images/ctct-logo.svg',
+      'hubspot.com': 'https://www.hubspot.com/hubfs/HubSpot_Logos/HubSpot-Inversed-Favicon.svg',
+      'salesforce.com': 'https://c1.sfdcstatic.com/etc/clientlibs/sfdc-aem-master/clientlibs_base/images/salesforce-logo.svg'
+    };
+    
     // Determine if domain has records based on consistent logic
     const hasSpf = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 1; // 80% chance
     const hasDmarc = wellKnownDomains.includes(domain.toLowerCase()) || Math.abs(domainHash) % 10 > 2; // 70% chance  
-    const hasBimi = Math.abs(domainHash) % 10 > 6; // 30% chance
+    const hasBimi = bimiLogos[domain.toLowerCase()] || Math.abs(domainHash) % 10 > 6; // 30% chance or if we have a real logo
     
     let spfLookupCount = 0;
     let exceedsLimit = false;
@@ -174,6 +184,9 @@ const Index = () => {
       exceedsLimit = false;
     }
     
+    // Get the actual BIMI logo URL for known domains
+    const bimiLogoUrl = bimiLogos[domain.toLowerCase()] || (hasBimi ? `https://${domain}/logo.svg` : null);
+    
     return {
       domain,
       spf: {
@@ -197,9 +210,9 @@ const Index = () => {
         errors: hasDmarc ? [] : ['No DMARC record found']
       },
       bimi: {
-        record: hasBimi ? `v=BIMI1; l=https://${domain}/logo.svg; a=https://${domain}/cert.pem` : null,
+        record: hasBimi ? `v=BIMI1; l=${bimiLogoUrl}; a=https://${domain}/cert.pem` : null,
         valid: hasBimi,
-        logoUrl: hasBimi ? `https://${domain}/logo.svg` : null,
+        logoUrl: bimiLogoUrl,
         certificateUrl: hasBimi ? `https://${domain}/cert.pem` : null,
         certificateExpiry: hasBimi ? '2025-12-31' : null,
         errors: hasBimi ? [] : ['No BIMI record found']
