@@ -30,8 +30,43 @@ const queryDnsRecord = async (domain: string, recordType: string): Promise<strin
       return null;
     }
     
-    // Return the first TXT record found
-    return data.Answer[0].data.replace(/"/g, ''); // Remove quotes from TXT records
+    // For TXT records, we need to find the specific record we're looking for
+    if (recordType === 'TXT') {
+      // For SPF records on the main domain, look for v=spf1
+      if (!domain.startsWith('_dmarc.') && !domain.startsWith('default._bimi.')) {
+        const spfRecord = data.Answer.find(record => 
+          record.data.replace(/"/g, '').includes('v=spf1')
+        );
+        if (spfRecord) {
+          return spfRecord.data.replace(/"/g, '');
+        }
+      }
+      
+      // For DMARC records, look for v=DMARC1
+      if (domain.startsWith('_dmarc.')) {
+        const dmarcRecord = data.Answer.find(record => 
+          record.data.replace(/"/g, '').includes('v=DMARC1')
+        );
+        if (dmarcRecord) {
+          return dmarcRecord.data.replace(/"/g, '');
+        }
+      }
+      
+      // For BIMI records, look for v=BIMI1
+      if (domain.startsWith('default._bimi.')) {
+        const bimiRecord = data.Answer.find(record => 
+          record.data.replace(/"/g, '').includes('v=BIMI1')
+        );
+        if (bimiRecord) {
+          return bimiRecord.data.replace(/"/g, '');
+        }
+      }
+      
+      return null;
+    }
+    
+    // For other record types, return the first record
+    return data.Answer[0].data.replace(/"/g, '');
   } catch (error) {
     console.error(`DNS query error for ${domain} (${recordType}):`, error);
     return null;
@@ -174,6 +209,8 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     lookupCount: 0,
     exceedsLookupLimit: false
   };
+  
+  console.log(`🔍 SPF record found for ${domain}:`, spfRecord);
   
   if (spfRecord && spfRecord.includes('v=spf1')) {
     const parsed = parseSPFRecord(spfRecord);
