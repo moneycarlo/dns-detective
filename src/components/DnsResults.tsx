@@ -1,16 +1,45 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
-import { DomainResult } from '@/types/domain';
+import { DomainResult, LookupDetail } from '@/types/domain';
 import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
 
 interface DnsResultsProps {
   results: DomainResult[];
 }
+
+const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
+  if (!details || details.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="space-y-2">
+      {details.map((detail, index) => (
+        <div key={index} style={{ marginLeft: `${detail.indent * 20}px` }}>
+          <div className="border rounded-lg p-3">
+            <div className="flex items-center justify-between mb-1">
+              <div className="font-medium text-sm flex items-center gap-2">
+                <span className="text-gray-500 font-normal">#{detail.number}</span>
+                <Badge variant="outline" className="text-xs">{detail.type}</Badge>
+                <span>{detail.domain}</span>
+              </div>
+            </div>
+            {detail.record && <code className="text-xs text-gray-600 break-all">{detail.record}</code>}
+            {detail.nested && detail.nested.length > 0 && (
+              <div className="mt-2">
+                <LookupDetails details={detail.nested} />
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
   const getStatusBadge = (status: string, valid?: boolean, hasRecord?: boolean) => {
@@ -140,22 +169,10 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                         </div>
                       </div>
 
-                      {Object.keys(result.spf.nestedLookups).length > 0 && (
+                      {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && (
                         <div>
                           <h4 className="font-medium mb-2">Nested Lookups</h4>
-                          <div className="space-y-2">
-                            {Object.entries(result.spf.nestedLookups).map(([domain, record]) => (
-                              <div key={domain} className="border rounded-lg p-3">
-                                <div className="flex items-center justify-between mb-1">
-                                  <div className="font-medium text-sm">{domain}</div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {Math.floor(Math.random() * 3) + 1} lookups
-                                  </Badge>
-                                </div>
-                                <code className="text-xs text-gray-600 break-all">{record}</code>
-                              </div>
-                            ))}
-                          </div>
+                          <LookupDetails details={result.spf.lookupDetails} />
                         </div>
                       )}
                     </div>
