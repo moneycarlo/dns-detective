@@ -1,10 +1,22 @@
 
+import { queryDnsRecord } from './dnsQuery';
+
 export interface SPFParseResult {
   mechanisms: string[];
   includes: string[];
   redirects: string[];
   lookupCount: number;
   exceedsLookupLimit: boolean;
+  nestedLookups: { [key: string]: string };
+  lookupDetails: LookupDetail[];
+}
+
+export interface LookupDetail {
+  number: number;
+  type: 'include' | 'redirect' | 'a' | 'mx' | 'ptr' | 'exists';
+  domain: string;
+  record?: string;
+  nested?: LookupDetail[];
 }
 
 export const parseSPFRecord = (record: string): SPFParseResult => {
@@ -36,48 +48,120 @@ export const parseSPFRecord = (record: string): SPFParseResult => {
     includes,
     redirects,
     lookupCount,
-    exceedsLookupLimit: lookupCount > 10
+    exceedsLookupLimit: lookupCount > 10,
+    nestedLookups: {},
+    lookupDetails: []
   };
 };
 
-// Helper function to count total lookups including nested includes
-export const countTotalSPFLookups = async (record: string, visited: Set<string> = new Set()): Promise<number> => {
-  let totalLookups = 0;
+// Recursive function to count and track all SPF lookups
+export const countTotalSPFLookups = async (
+  record: string, 
+  visited: Set<string> = new Set(),
+  lookupNumber: { current: number } = { current: 0 }
+): Promise<{ totalLookups: number; lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string } }> => {
+  const lookupDetails: LookupDetail[] = [];
+  const nestedLookups: { [key: string]: string } = {};
   const parts = record.split(/\s+/);
   
   for (const part of parts) {
     if (part.startsWith('include:')) {
       const includeDomain = part.substring(8);
-      totalLookups++; // Count the include itself
+      lookupNumber.current++;
+      const currentLookupNumber = lookupNumber.current;
+      
+      const lookupDetail: LookupDetail = {
+        number: currentLookupNumber,
+        type: 'include',
+        domain: includeDomain
+      };
       
       // Avoid infinite recursion by tracking visited domains
       if (!visited.has(includeDomain)) {
         visited.add(includeDomain);
         
         try {
-          // In a real implementation, you would fetch the nested SPF record here
-          // For now, we'll estimate based on common patterns
-          if (includeDomain.includes('google.com') || includeDomain.includes('_spf.google.com')) {
-            totalLookups += 3; // Google typically has 3-4 nested lookups
-          } else if (includeDomain.includes('microsoft.com') || includeDomain.includes('outlook.com')) {
-            totalLookups += 2; // Microsoft typically has 2-3 nested lookups
-          } else if (includeDomain.includes('salesforce.com')) {
-            totalLookups += 1; // Salesforce typically has 1-2 nested lookups
-          } else {
-            totalLookups += 1; // Conservative estimate for other providers
+          console.log(`🔍 Fetching nested SPF for ${includeDomain} (lookup #${currentLookupNumber})`);
+          const nestedRecord = await queryDnsRecord(includeDomain, 'TXT');
+          
+          if (nestedRecord && nestedRecord.includes('v=spf1')) {
+            lookupDetail.record = nestedRecord;
+            nestedLookups[includeDomain] = nestedRecord;
+            
+            // Recursively process nested includes
+            const nestedResult = await countTotalSPFLookups(nestedRecord, visited, lookupNumber);
+            lookupDetail.nested = nestedResult.lookupDetails;
+            
+            // Merge nested lookups
+            Object.assign(nestedLookups, nestedResult.nestedLookups);
           }
         } catch (error) {
-          console.error(`Error fetching nested SPF for ${includeDomain}:`, error);
+          console.error(`❌ Error fetching nested SPF for ${includeDomain}:`, error);
         }
       }
+      
+      lookupDetails.push(lookupDetail);
+      
     } else if (part.startsWith('redirect=')) {
-      totalLookups++; // Redirect counts as a lookup
+      const redirectDomain = part.substring(9);
+      lookupNumber.current++;
+      
+      const lookupDetail: LookupDetail = {
+        number: lookupNumber.current,
+        type: 'redirect',
+        domain: redirectDomain
+      };
+      
+      if (!visited.has(redirectDomain)) {
+        visited.add(redirectDomain);
+        
+        try {
+          const redirectRecord = await queryDnsRecord(redirectDomain, 'TXT');
+          
+          if (redirectRecord && redirectRecord.includes('v=spf1')) {
+            lookupDetail.record = redirectRecord;
+            nestedLookups[redirectDomain] = redirectRecord;
+            
+            // Recursively process redirect
+            const nestedResult = await countTotalSPFLookups(redirectRecord, visited, lookupNumber);
+            lookupDetail.nested = nestedResult.lookupDetails;
+            
+            // Merge nested lookups
+            Object.assign(nestedLookups, nestedResult.nestedLookups);
+          }
+        } catch (error) {
+          console.error(`❌ Error fetching redirect SPF for ${redirectDomain}:`, error);
+        }
+      }
+      
+      lookupDetails.push(lookupDetail);
+      
     } else if (part.match(/^[+\-~?]?(a|mx|ptr|exists):/)) {
-      totalLookups++; // These mechanisms require DNS lookups
+      lookupNumber.current++;
+      const mechanism = part.match(/^[+\-~?]?(a|mx|ptr|exists):/);
+      const domain = part.split(':')[1];
+      
+      lookupDetails.push({
+        number: lookupNumber.current,
+        type: mechanism![1] as 'a' | 'mx' | 'ptr' | 'exists',
+        domain: domain
+      });
+      
     } else if (part.match(/^[+\-~?]?(a|mx)$/)) {
-      totalLookups++; // Plain 'a' and 'mx' mechanisms also require DNS lookups
+      lookupNumber.current++;
+      const mechanism = part.match(/^[+\-~?]?(a|mx)$/);
+      
+      lookupDetails.push({
+        number: lookupNumber.current,
+        type: mechanism![1] as 'a' | 'mx',
+        domain: 'current domain'
+      });
     }
   }
   
-  return totalLookups;
+  return {
+    totalLookups: lookupNumber.current,
+    lookupDetails,
+    nestedLookups
+  };
 };

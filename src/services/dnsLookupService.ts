@@ -1,4 +1,3 @@
-
 import { DomainResult } from '@/types/domain';
 import { queryDnsRecord } from './dnsQuery';
 import { parseSPFRecord, countTotalSPFLookups } from './spfParser';
@@ -74,8 +73,10 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
   if (spfRecord && spfRecord.includes('v=spf1')) {
     const parsed = parseSPFRecord(spfRecord);
     
-    // Get more accurate lookup count including nested lookups
-    const totalLookups = await countTotalSPFLookups(spfRecord);
+    // Get accurate lookup count with recursive nested lookups
+    console.log(`🔍 Counting total SPF lookups for ${domain}...`);
+    const lookupResult = await countTotalSPFLookups(spfRecord);
+    console.log(`📊 Total SPF lookups for ${domain}: ${lookupResult.totalLookups}`);
     
     spfData = {
       record: spfRecord,
@@ -84,9 +85,9 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
       redirects: parsed.redirects,
       mechanisms: parsed.mechanisms,
       errors: [],
-      nestedLookups: {},
-      lookupCount: totalLookups,
-      exceedsLookupLimit: totalLookups > 10
+      nestedLookups: lookupResult.nestedLookups,
+      lookupCount: lookupResult.totalLookups,
+      exceedsLookupLimit: lookupResult.totalLookups > 10
     };
     
     // Query nested includes for demonstration
