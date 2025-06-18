@@ -3,7 +3,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { DomainResult, LookupDetail } from '@/types/domain';
 import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
 
@@ -40,6 +39,7 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
     </div>
   );
 };
+
 
 export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
   const getStatusBadge = (status: string, valid?: boolean, hasRecord?: boolean) => {
@@ -112,10 +112,6 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
   const handleImageError = (url: string, error: any) => {
     console.log(`❌ BIMI logo failed to load: ${url}`);
     console.log('Error details:', error);
-    
-    fetch(url, { mode: 'no-cors' })
-      .then(() => console.log(`🔍 URL is accessible via fetch: ${url}`))
-      .catch(fetchError => console.log(`🔍 URL fetch failed: ${url}`, fetchError));
   };
 
   const isCertificateExpired = (expiryDate: string | null): boolean => {
@@ -186,7 +182,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   </Alert>
                 )}
 
-                {result.spf.errors.length > 0 && result.spf.record && (
+                {result.spf.errors.length > 0 && (
                   <div className="space-y-2">
                     {result.spf.errors.map((error, idx) => (
                       <Alert key={idx} variant="destructive">
@@ -261,7 +257,7 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   </Alert>
                 )}
 
-                {result.dmarc.errors.length > 0 && result.dmarc.record && (
+                {result.dmarc.errors.length > 0 && (
                   <div className="space-y-2">
                     {result.dmarc.errors.map((error, idx) => (
                       <Alert key={idx} variant="destructive">
@@ -291,316 +287,18 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                       <code className="text-sm break-all">{result.bimi.record}</code>
                     </div>
                     
-                    {/* Certificate Warning */}
-                    {!result.bimi.certificateUrl && (
-                      <Alert variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>
-                          <div className="space-y-1">
-                            <div className="font-medium">No certificate present</div>
-                            <div>BIMI logo will not display for some providers like Gmail. A Verified Mark Certificate (VMC) is required for full BIMI support.</div>
-                          </div>
-                        </AlertDescription>
-                      </Alert>
-                    )}
-                    
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                       <div className="space-y-4">
                         <h4 className="font-medium">Record Details</h4>
                         <div className="space-y-3">
                           <div>
                             <label className="text-sm font-medium text-gray-700">Logo URL</label>
-                            {result.bimi.logoUrl ? (
-                              <div className="mt-1 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <a 
-                                    href={result.bimi.logoUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                                  >
-                                    {result.bimi.logoUrl}
-                                  </a>
-                                  <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                </div>
-                                {/* Logo Preview */}
-                                <div className="w-16 h-16 border border-gray-200 rounded-lg bg-white flex items-center justify-center overflow-hidden">
-                                  <object 
-                                    data={result.bimi.logoUrl} 
-                                    type="image/svg+xml"
-                                    className="w-12 h-12"
-                                    onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
-                                    onError={(e) => {
-                                      handleImageError(result.bimi.logoUrl!, e);
-                                      (e.target as HTMLObjectElement).style.display = 'none';
-                                      (e.target as HTMLObjectElement).nextElementSibling?.classList.remove('hidden');
-                                    }}
-                                  >
-                                    <img 
-                                      src={result.bimi.logoUrl} 
-                                      alt="BIMI Logo" 
-                                      className="w-12 h-12 object-contain"
-                                      onError={(e) => {
-                                        (e.target as HTMLImageElement).style.display = 'none';
-                                        (e.target as HTMLImageElement).nextElementSibling?.classList.remove('hidden');
-                                      }}
-                                    />
-                                  </object>
-                                  <div className={`text-gray-400 text-xs ${result.bimi.logoUrl ? 'hidden' : ''}`}>
-                                    No logo
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <span className="text-gray-500 text-sm">Not specified</span>
-                            )}
-                          </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Certificate</label>
-                            {result.bimi.certificateUrl ? (
-                              <div className="mt-1 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <a 
-                                    href={result.bimi.certificateUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                                  >
-                                    Certificate URL
-                                  </a>
-                                  <ExternalLink className="h-4 w-4 text-gray-400" />
-                                </div>
-                                {result.bimi.certificateExpiry && (
-                                  <div className="text-sm">
-                                    <span className="font-medium">Expires:</span> 
-                                    <span className={isCertificateExpired(result.bimi.certificateExpiry) ? 'text-red-600 font-medium' : ''}>
-                                      {result.bimi.certificateExpiry}
-                                    </span>
-                                    {isCertificateExpired(result.bimi.certificateExpiry) && (
-                                      <div className="text-red-600 text-xs mt-1">
-                                        ⚠️ Certificate has expired
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="mt-1">
-                                <span className="text-red-600 text-sm font-medium">Not specified</span>
-                                <div className="text-xs text-gray-600 mt-1">
-                                  Certificate required for Gmail and other providers
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Email Preview</h4>
-                        {/* Realistic iPhone-style mockup */}
-                        <div className="mx-auto max-w-xs">
-                          <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
-                            {/* iPhone notch and frame */}
-                            <div className="bg-black rounded-[2rem] relative overflow-hidden">
-                              {/* Dynamic Island */}
-                              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div>
-                              
-                              {/* Screen */}
-                              <div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[28rem]">
-                                {/* Status bar */}
-                                <div className="bg-white px-6 py-3 flex justify-between items-center text-black text-sm font-medium">
-                                  <span>9:41</span>
-                                  <div className="flex items-center gap-1">
-                                    <div className="flex gap-1">
-                                      <div className="w-1 h-1 bg-black rounded-full"></div>
-                                      <div className="w-1 h-1 bg-black rounded-full"></div>
-                                      <div className="w-1 h-1 bg-black rounded-full"></div>
-                                      <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
-                                    </div>
-                                    <div className="ml-1 w-6 h-3 border border-black rounded-sm relative">
-                                      <div className="absolute right-[-2px] top-1 w-1 h-1 bg-black rounded-sm"></div>
-                                      <div className="w-4 h-2 bg-black rounded-sm m-0.5"></div>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                {/* Mail app header */}
-                                <div className="bg-blue-600 px-4 py-4 flex items-center justify-between">
-                                  <div className="flex items-center gap-3">
-                                    <div className="text-white text-lg font-semibold">Mailboxes</div>
-                                  </div>
-                                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                                    <span className="text-white text-sm font-medium">✉</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Inbox header */}
-                                <div className="bg-gray-50 px-4 py-3 border-b">
-                                  <div className="flex items-center justify-between">
-                                    <h2 className="font-semibold text-gray-900">Inbox</h2>
-                                    <span className="text-blue-600 text-sm">Edit</span>
-                                  </div>
-                                </div>
-                                
-                                {/* Email list */}
-                                <div className="divide-y divide-gray-100">
-                                  {/* BIMI Enhanced Email */}
-                                  <div className="px-4 py-4 bg-blue-25">
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
-                                        {result.bimi.logoUrl ? (
-                                          <object 
-                                            data={result.bimi.logoUrl} 
-                                            type="image/svg+xml"
-                                            className="w-10 h-10"
-                                          >
-                                            <img 
-                                              src={result.bimi.logoUrl} 
-                                              alt="BIMI Logo" 
-                                              className="w-10 h-10 object-contain"
-                                            />
-                                          </object>
-                                        ) : (
-                                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                            {result.domain.charAt(0).toUpperCase()}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-1">
-                                          <div className="font-semibold text-gray-900 text-sm truncate">
-                                            {result.domain}
-                                          </div>
-                                          <div className="text-xs text-blue-600 font-medium">
-                                            2:30 PM
-                                          </div>
-                                        </div>
-                                        <div className="text-sm font-medium text-gray-800 truncate mb-1">
-                                          Welcome to {result.domain}! 🎉
-                                        </div>
-                                        <div className="text-xs text-gray-600 truncate leading-relaxed">
-                                          Thank you for joining our community. We're excited to have you on board and look forward to...
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Regular email 1 */}
-                                  <div className="px-4 py-4">
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-12 h-12 rounded-full bg-gray-400 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                                        AM
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-1">
-                                          <div className="font-semibold text-gray-900 text-sm truncate">
-                                            Apple Music
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            1:15 PM
-                                          </div>
-                                        </div>
-                                        <div className="text-sm text-gray-700 truncate mb-1">
-                                          Your Weekly Mix is Ready
-                                        </div>
-                                        <div className="text-xs text-gray-500 truncate">
-                                          Discover new songs picked just for you...
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Regular email 2 */}
-                                  <div className="px-4 py-4">
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                                        MS
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-1">
-                                          <div className="font-semibold text-gray-900 text-sm truncate">
-                                            Microsoft Store
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            12:45 PM
-                                          </div>
-                                        </div>
-                                        <div className="text-sm text-gray-700 truncate mb-1">
-                                          App updates available
-                                        </div>
-                                        <div className="text-xs text-gray-500 truncate">
-                                          5 apps have updates ready to install...
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                  
-                                  {/* Regular email 3 */}
-                                  <div className="px-4 py-4">
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white font-semibold text-sm flex-shrink-0">
-                                        SL
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-start justify-between mb-1">
-                                          <div className="font-semibold text-gray-900 text-sm truncate">
-                                            Slack
-                                          </div>
-                                          <div className="text-xs text-gray-500">
-                                            11:30 AM
-                                          </div>
-                                        </div>
-                                        <div className="text-sm text-gray-700 truncate mb-1">
-                                          You have 3 unread messages
-                                        </div>
-                                        <div className="text-xs text-gray-500 truncate">
-                                          Check your team updates in #general...
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        <div className="text-xs text-gray-600 space-y-1 text-center">
-                          <div className="font-medium">BIMI Display Preview</div>
-                          <div>Shows how your brand logo appears in email clients that support BIMI</div>
-                          {result.bimi.logoUrl && (
-                            <div className="text-green-600">✓ Logo detected and will be displayed</div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <Alert>
-                    <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      No BIMI record found. This domain is not using Brand Indicators for Message Identification.
-                    </AlertDescription>
-                  </Alert>
-                )}
-
-                {result.bimi.errors.length > 0 && result.bimi.record && (
-                  <div className="space-y-2">
-                    {result.bimi.errors.map((error, idx) => (
-                      <Alert key={idx} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
-        </TabsContent>
-      </Tabs>
-    </div>
-  );
-};
+                            <div className="mt-1 space-y-2">
+                              {result.bimi.logoUrl ? (
+                                <>
+                                  <div className="flex items-center gap-2">
+                                    <a 
+                                      href={result.bimi.logoUrl} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer"
+                                      className="text-blue-600
