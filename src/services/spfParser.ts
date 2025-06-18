@@ -52,4 +52,75 @@ export const countTotalSPFLookups = async (
   record: string,
   domain: string,
   visited: Set<string> = new Set(),
-  indent
+  indent: number = 0,
+  counter: { current: number } = { current: 0 }
+): Promise<{ lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string } }> => {
+  if (indent === 0) {
+    counter.current = 0;
+  }
+
+  if (visited.has(domain)) {
+    console.log(`${'  '.repeat(indent)}⚠️ Skipping already visited domain: ${domain}`);
+    return { lookupDetails: [], nestedLookups: {} };
+  }
+  visited.add(domain);
+
+  const lookupDetails: LookupDetail[] = [];
+  const nestedLookups: { [key: string]: string } = {};
+  const parts = record.split(/\s+/);
+
+  for (const part of parts) {
+    let isLookupMechanism = false;
+    let lookupType: 'include' | 'redirect' | 'a' | 'mx' | 'ptr' | 'exists' | null = null;
+    let lookupDomain: string | null = null;
+
+    const includeMatch = part.match(/^include:(.+)$/);
+    const redirectMatch = part.match(/^redirect=(.+)$/);
+    const mechanismMatch = part.match(/^[+\-~?]?(a|mx|ptr|exists)(?::([^ ]+))?$/);
+
+    if (includeMatch) {
+      isLookupMechanism = true;
+      lookupType = 'include';
+      lookupDomain = includeMatch[1];
+    } else if (redirectMatch) {
+      isLookupMechanism = true;
+      lookupType = 'redirect';
+      lookupDomain = redirectMatch[1];
+    } else if (mechanismMatch) {
+      isLookupMechanism = true;
+      lookupType = mechanismMatch[1] as 'a' | 'mx' | 'ptr' | 'exists';
+      lookupDomain = mechanismMatch[2] || domain;
+    }
+
+    if (isLookupMechanism && lookupType && lookupDomain) {
+      counter.current++;
+      const currentLookupNumber = counter.current;
+
+      const logPrefix = '  '.repeat(indent);
+      console.log(`${logPrefix}🔍 Lookup #${currentLookupNumber}: ${lookupType} ${lookupDomain}`);
+
+      const detail: LookupDetail = {
+        number: currentLookupNumber,
+        type: lookupType,
+        domain: lookupDomain,
+        indent: indent,
+        nested: [],
+      };
+
+      if (lookupType === 'include' || lookupType === 'redirect') {
+        const fetchedRecord = await queryDnsRecord(lookupDomain, 'TXT');
+        detail.record = fetchedRecord || 'No TXT record found';
+
+        if (fetchedRecord && fetchedRecord.includes('v=spf1')) {
+          nestedLookups[lookupDomain] = fetchedRecord;
+          const nestedResult = await countTotalSPFLookups(fetchedRecord, lookupDomain, new Set(visited), indent + 1, counter);
+          detail.nested = nestedResult.lookupDetails;
+          Object.assign(nestedLookups, nestedResult.nestedLookups);
+        }
+      }
+      lookupDetails.push(detail);
+    }
+  }
+
+  return { lookupDetails, nestedLookups };
+};
