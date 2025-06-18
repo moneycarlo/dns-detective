@@ -21,7 +21,7 @@ const Index = () => {
         {/* Domain Input Section - Now at the top */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-center">DNS Detective</CardTitle>
+            <CardTitle className="text-center">a DNS Detective</CardTitle>
             <CardDescription className="text-center">
               aa Enter up to 10 domains to analyze their DNS records (SPF, DMARC, BIMI)
             </CardDescription>
