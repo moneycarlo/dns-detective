@@ -1,3 +1,11 @@
+export interface LookupDetail {
+  number: number;
+  type: "include" | "redirect" | "a" | "mx" | "ptr" | "exists";
+  domain: string;
+  record?: string;
+  nested?: LookupDetail[];
+  indent: number;
+}
 
 export interface DomainResult {
   domain: string;
@@ -11,6 +19,7 @@ export interface DomainResult {
     nestedLookups: { [key: string]: string };
     lookupCount: number;
     exceedsLookupLimit: boolean;
+    lookupDetails: LookupDetail[];
   };
   dmarc: {
     record: string | null;
