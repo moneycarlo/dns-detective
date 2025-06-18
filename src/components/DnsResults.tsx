@@ -301,4 +301,131 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                                       href={result.bimi.logoUrl} 
                                       target="_blank" 
                                       rel="noopener noreferrer"
-                                      className="text-blue-600
+                                      className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                    >
+                                      {result.bimi.logoUrl}
+                                    </a>
+                                    <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                  </div>
+                                  <div className="w-16 h-16 border border-gray-200 rounded-lg bg-white flex items-center justify-center overflow-hidden">
+                                    <img 
+                                      src={result.bimi.logoUrl} 
+                                      alt="BIMI Logo" 
+                                      className="w-12 h-12 object-contain"
+                                      onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
+                                      onError={(e) => handleImageError(result.bimi.logoUrl!, e)}
+                                    />
+                                  </div>
+                                </>
+                              ) : (
+                                <span className="text-gray-500 text-sm">Not specified</span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <label className="text-sm font-medium text-gray-700">Certificate</label>
+                            {result.bimi.certificateUrl ? (
+                              <div className="mt-1 space-y-2">
+                                <div className="flex items-center gap-2">
+                                  <a 
+                                    href={result.bimi.certificateUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
+                                  >
+                                    Certificate URL
+                                  </a>
+                                  <ExternalLink className="h-4 w-4 text-gray-400" />
+                                </div>
+                                {result.bimi.certificateExpiry && (
+                                  <div className="text-sm">
+                                    <span className="font-medium">Expires:</span> 
+                                    <span className={isCertificateExpired(result.bimi.certificateExpiry) ? 'text-red-600 font-medium' : ''}>
+                                      {result.bimi.certificateExpiry}
+                                    </span>
+                                    {isCertificateExpired(result.bimi.certificateExpiry) && (
+                                      <div className="text-red-600 text-xs mt-1">
+                                        ⚠️ Certificate has expired
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div className="mt-1">
+                                <span className="text-red-600 text-sm font-medium">Not specified</span>
+                                <div className="text-xs text-gray-600 mt-1">
+                                  Certificate required for Gmail and other providers
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <h4 className="font-medium">Email Preview</h4>
+                        <div className="mx-auto max-w-xs">
+                          <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                            <div className="bg-black rounded-[2rem] relative overflow-hidden">
+                              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div>
+                              <div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[28rem]">
+                                <div className="divide-y divide-gray-100 pt-12">
+                                  <div className="px-4 py-4 bg-blue-50">
+                                    <div className="flex items-start gap-3">
+                                      <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                                        {result.bimi.logoUrl ? (
+                                          <img 
+                                            src={result.bimi.logoUrl} 
+                                            alt="BIMI Logo" 
+                                            className="w-10 h-10 object-contain"
+                                          />
+                                        ) : (
+                                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                                            {result.domain.charAt(0).toUpperCase()}
+                                          </div>
+                                        )}
+                                      </div>
+                                      <div className="flex-1 min-w-0">
+                                        <div className="font-semibold text-gray-900 text-sm truncate">
+                                          {result.domain}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <Alert>
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>
+                      No BIMI record found. This domain is not using Brand Indicators for Message Identification.
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                {result.bimi.errors.length > 0 && (
+                  <div className="space-y-2">
+                    {result.bimi.errors.map((error, idx) => (
+                      <Alert key={idx} variant="destructive">
+                        <AlertTriangle className="h-4 w-4" />
+                        <AlertDescription>{error}</AlertDescription>
+                      </Alert>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
