@@ -7,10 +7,10 @@ export const Header: React.FC = () => {
     <div className="text-center space-y-4">
       <div className="flex justify-center items-center gap-3">
         <Shield className="h-12 w-12 text-blue-600" />
-        <h1 className="text-4xl font-bold text-gray-900">DNS Security Lookup</h1>
+        <h1 className="text-4xl font-bold text-gray-900">DNS Detective</h1>
       </div>
       <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-        Comprehensive DNS analysis for SPF, DMARC, and BIMI records with nested lookups and certificate validation
+        DNS lookup for SPF, DMARC, and BIMI records
       </p>
     </div>
   );
