@@ -80,6 +80,8 @@ export const countTotalSPFLookups = async (
       globalLookupCounter++;
       const currentLookupNumber = globalLookupCounter;
       
+      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: include ${includeDomain}`);
+      
       const lookupDetail: LookupDetail = {
         number: currentLookupNumber,
         type: 'include',
@@ -92,7 +94,6 @@ export const countTotalSPFLookups = async (
         visited.add(includeDomain);
         
         try {
-          console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: include ${includeDomain}`);
           const nestedRecord = await queryDnsRecord(includeDomain, 'TXT');
           
           if (nestedRecord && nestedRecord.includes('v=spf1')) {
@@ -118,6 +119,8 @@ export const countTotalSPFLookups = async (
       globalLookupCounter++;
       const currentLookupNumber = globalLookupCounter;
       
+      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: redirect ${redirectDomain}`);
+      
       const lookupDetail: LookupDetail = {
         number: currentLookupNumber,
         type: 'redirect',
@@ -129,7 +132,6 @@ export const countTotalSPFLookups = async (
         visited.add(redirectDomain);
         
         try {
-          console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: redirect ${redirectDomain}`);
           const redirectRecord = await queryDnsRecord(redirectDomain, 'TXT');
           
           if (redirectRecord && redirectRecord.includes('v=spf1')) {
@@ -181,7 +183,7 @@ export const countTotalSPFLookups = async (
     }
   }
   
-  // Return the final global counter only from the top-level call
+  // Return the final global counter - this is the TOTAL count across all recursion levels
   return {
     totalLookups: globalLookupCounter,
     lookupDetails,

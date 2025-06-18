@@ -86,17 +86,11 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
       mechanisms: parsed.mechanisms,
       errors: [],
       nestedLookups: lookupResult.nestedLookups,
-      lookupCount: lookupResult.totalLookups,
+      lookupCount: lookupResult.totalLookups, // Use the total count from the recursive function
       exceedsLookupLimit: lookupResult.totalLookups > 10
     };
     
-    // Query nested includes for demonstration
-    for (const include of parsed.includes.slice(0, 3)) { // Limit to 3 to avoid too many requests
-      const nestedRecord = await queryDnsRecord(include, 'TXT');
-      if (nestedRecord && nestedRecord.includes('v=spf1')) {
-        spfData.nestedLookups[include] = nestedRecord;
-      }
-    }
+    // Remove the duplicate nested lookup fetching since it's already done in countTotalSPFLookups
   }
   
   // Query DMARC record
