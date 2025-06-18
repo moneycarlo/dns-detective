@@ -10,6 +10,7 @@ interface DnsResultsProps {
   results: DomainResult[];
 }
 
+
 const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   if (!details || details.length === 0) {
     return null;
@@ -18,18 +19,18 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   return (
     <div className="space-y-2">
       {details.map((detail, index) => (
-        <div key={index} style={{ marginLeft: `${detail.indent * 20}px` }}>
+        <div key={`${detail.number}-${index}`} style={{ marginLeft: `${detail.indent * 20}px` }}>
           <div className="border rounded-lg p-3">
             <div className="flex items-center justify-between mb-1">
-              <div className="font-medium text-sm flex items-center gap-2">
+              <div className="font-medium text-sm flex items-center gap-2 flex-wrap">
                 <span className="text-gray-500 font-normal">#{detail.number}</span>
                 <Badge variant="outline" className="text-xs">{detail.type}</Badge>
-                <span>{detail.domain}</span>
+                <span className="break-all">{detail.domain}</span>
               </div>
             </div>
             {detail.record && <code className="text-xs text-gray-600 break-all">{detail.record}</code>}
             {detail.nested && detail.nested.length > 0 && (
-              <div className="mt-2">
+              <div className="mt-2 pl-4 border-l-2 border-gray-200">
                 <LookupDetails details={detail.nested} />
               </div>
             )}
@@ -66,8 +67,8 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
             Valid
           </Badge>
         ) : (
-          <Badge variant="outline" className="bg-gray-50 text-gray-700 border-gray-200">
-            Found
+          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+            Issues Found
           </Badge>
         );
       default:
@@ -82,7 +83,8 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
           <span className="text-xl font-semibold text-gray-900">
             {result.domain}
           </span>
-          {getStatusBadge(result.status)}
+          {result.status !== 'pending' && getStatusBadge('completed', result.spf.valid && result.dmarc.valid, !!(result.spf.record || result.dmarc.record || result.bimi.record))}
+          {result.status === 'pending' && getStatusBadge('pending')}
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
@@ -109,14 +111,17 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
     console.log(`✅ BIMI logo loaded successfully: ${url}`);
   };
 
-  const handleImageError = (url: string, error: any) => {
+  const handleImageError = (url: string) => {
     console.log(`❌ BIMI logo failed to load: ${url}`);
-    console.log('Error details:', error);
   };
 
   const isCertificateExpired = (expiryDate: string | null): boolean => {
     if (!expiryDate) return false;
-    return new Date(expiryDate) < new Date();
+    try {
+      return new Date(expiryDate) < new Date();
+    } catch (e) {
+      return false;
+    }
   };
 
   return (
@@ -145,13 +150,11 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   <h3 className="text-lg font-semibold">SPF Record</h3>
                   {getStatusBadge('completed', result.spf.valid, !!result.spf.record)}
                 </div>
-                
                 {result.spf.record ? (
                   <div className="space-y-4">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <code className="text-sm break-all">{result.spf.record}</code>
                     </div>
-                    
                     <div className="space-y-4">
                       <div>
                         <h4 className="font-medium mb-2 flex items-center gap-2">
@@ -161,13 +164,12 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                           </Badge>
                         </h4>
                         <div className="text-sm text-gray-600">
-                          Total DNS lookups required for this SPF record: <strong>{result.spf.lookupCount}</strong>
+                          Total DNS lookups for this SPF record: <strong>{result.spf.lookupCount}</strong>
                         </div>
                       </div>
-
                       {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && (
                         <div>
-                          <h4 className="font-medium mb-2">Nested Lookups</h4>
+                          <h4 className="font-medium mb-2">Lookup Details</h4>
                           <LookupDetails details={result.spf.lookupDetails} />
                         </div>
                       )}
@@ -177,21 +179,16 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
                     <AlertDescription>
-                      No SPF record found. This domain is not protected against email spoofing.
+                      No SPF record found.
                     </AlertDescription>
                   </Alert>
                 )}
-
-                {result.spf.errors.length > 0 && (
-                  <div className="space-y-2">
-                    {result.spf.errors.map((error, idx) => (
-                      <Alert key={idx} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
+                {result.spf.errors.map((error, idx) => (
+                  <Alert key={idx} variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ))}
               </div>
             ))
           )}
@@ -205,68 +202,24 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   <h3 className="text-lg font-semibold">DMARC Record</h3>
                   {getStatusBadge('completed', result.dmarc.valid, !!result.dmarc.record)}
                 </div>
-                
                 {result.dmarc.record ? (
-                  <div className="space-y-4">
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <code className="text-sm break-all">{result.dmarc.record}</code>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Policy</label>
-                          <div className="mt-1">
-                            <Badge variant={result.dmarc.policy === 'reject' ? 'default' : 'secondary'}>
-                              {result.dmarc.policy}
-                            </Badge>
-                          </div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Subdomain Policy</label>
-                          <div className="mt-1">
-                            <Badge variant="outline">{result.dmarc.subdomainPolicy || 'inherit'}</Badge>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="space-y-3">
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Percentage</label>
-                          <div className="mt-1 text-lg font-semibold">{result.dmarc.percentage}%</div>
-                        </div>
-                        
-                        <div>
-                          <label className="text-sm font-medium text-gray-700">Reporting Emails</label>
-                          <div className="mt-1 space-y-1">
-                            {result.dmarc.reportingEmails.map((email, idx) => (
-                              <div key={idx} className="text-sm text-gray-600">{email}</div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                   <div className="space-y-4">
+                     <div className="bg-gray-50 p-4 rounded-lg">
+                       <code className="text-sm break-all">{result.dmarc.record}</code>
+                     </div>
+                   </div>
                 ) : (
                   <Alert variant="destructive">
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      No DMARC record found. This domain lacks email authentication policy.
-                    </AlertDescription>
+                    <AlertDescription>No DMARC record found.</AlertDescription>
                   </Alert>
                 )}
-
-                {result.dmarc.errors.length > 0 && (
-                  <div className="space-y-2">
-                    {result.dmarc.errors.map((error, idx) => (
-                      <Alert key={idx} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
+                {result.dmarc.errors.map((error, idx) => (
+                  <Alert key={idx} variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ))}
               </div>
             ))
           )}
@@ -280,147 +233,37 @@ export const DnsResults: React.FC<DnsResultsProps> = ({ results }) => {
                   <h3 className="text-lg font-semibold">BIMI Record</h3>
                   {getStatusBadge('completed', result.bimi.valid, !!result.bimi.record)}
                 </div>
-                
                 {result.bimi.record ? (
                   <div className="space-y-6">
                     <div className="bg-gray-50 p-4 rounded-lg">
                       <code className="text-sm break-all">{result.bimi.record}</code>
                     </div>
-                    
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Record Details</h4>
-                        <div className="space-y-3">
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Logo URL</label>
-                            <div className="mt-1 space-y-2">
-                              {result.bimi.logoUrl ? (
-                                <>
-                                  <div className="flex items-center gap-2">
-                                    <a 
-                                      href={result.bimi.logoUrl} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer"
-                                      className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                                    >
-                                      {result.bimi.logoUrl}
-                                    </a>
-                                    <ExternalLink className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                  </div>
-                                  <div className="w-16 h-16 border border-gray-200 rounded-lg bg-white flex items-center justify-center overflow-hidden">
-                                    <img 
-                                      src={result.bimi.logoUrl} 
-                                      alt="BIMI Logo" 
-                                      className="w-12 h-12 object-contain"
-                                      onLoad={() => handleImageLoad(result.bimi.logoUrl!)}
-                                      onError={(e) => handleImageError(result.bimi.logoUrl!, e)}
-                                    />
-                                  </div>
-                                </>
-                              ) : (
-                                <span className="text-gray-500 text-sm">Not specified</span>
-                              )}
-                            </div>
-                          </div>
-                          
-                          <div>
-                            <label className="text-sm font-medium text-gray-700">Certificate</label>
-                            {result.bimi.certificateUrl ? (
-                              <div className="mt-1 space-y-2">
-                                <div className="flex items-center gap-2">
-                                  <a 
-                                    href={result.bimi.certificateUrl} 
-                                    target="_blank" 
-                                    rel="noopener noreferrer"
-                                    className="text-blue-600 hover:text-blue-800 text-sm break-all"
-                                  >
-                                    Certificate URL
-                                  </a>
-                                  <ExternalLink className="h-4 w-4 text-gray-400" />
-                                </div>
-                                {result.bimi.certificateExpiry && (
-                                  <div className="text-sm">
-                                    <span className="font-medium">Expires:</span> 
-                                    <span className={isCertificateExpired(result.bimi.certificateExpiry) ? 'text-red-600 font-medium' : ''}>
-                                      {result.bimi.certificateExpiry}
-                                    </span>
-                                    {isCertificateExpired(result.bimi.certificateExpiry) && (
-                                      <div className="text-red-600 text-xs mt-1">
-                                        ⚠️ Certificate has expired
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            ) : (
-                              <div className="mt-1">
-                                <span className="text-red-600 text-sm font-medium">Not specified</span>
-                                <div className="text-xs text-gray-600 mt-1">
-                                  Certificate required for Gmail and other providers
-                                </div>
-                              </div>
-                            )}
-                          </div>
+                    {result.bimi.logoUrl && (
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-700">Logo Preview</label>
+                        <div className="w-16 h-16 border rounded-lg p-1 flex items-center justify-center">
+                          <img
+                            src={result.bimi.logoUrl}
+                            alt={`${result.domain} BIMI logo`}
+                            className="w-full h-full object-contain"
+                            onError={() => handleImageError(result.bimi.logoUrl!)}
+                          />
                         </div>
                       </div>
-                      
-                      <div className="space-y-4">
-                        <h4 className="font-medium">Email Preview</h4>
-                        <div className="mx-auto max-w-xs">
-                          <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
-                            <div className="bg-black rounded-[2rem] relative overflow-hidden">
-                              <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div>
-                              <div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[28rem]">
-                                <div className="divide-y divide-gray-100 pt-12">
-                                  <div className="px-4 py-4 bg-blue-50">
-                                    <div className="flex items-start gap-3">
-                                      <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
-                                        {result.bimi.logoUrl ? (
-                                          <img 
-                                            src={result.bimi.logoUrl} 
-                                            alt="BIMI Logo" 
-                                            className="w-10 h-10 object-contain"
-                                          />
-                                        ) : (
-                                          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                                            {result.domain.charAt(0).toUpperCase()}
-                                          </div>
-                                        )}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                        <div className="font-semibold text-gray-900 text-sm truncate">
-                                          {result.domain}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    )}
                   </div>
                 ) : (
                   <Alert>
                     <AlertTriangle className="h-4 w-4" />
-                    <AlertDescription>
-                      No BIMI record found. This domain is not using Brand Indicators for Message Identification.
-                    </AlertDescription>
+                    <AlertDescription>No BIMI record found.</AlertDescription>
                   </Alert>
                 )}
-
-                {result.bimi.errors.length > 0 && (
-                  <div className="space-y-2">
-                    {result.bimi.errors.map((error, idx) => (
-                      <Alert key={idx} variant="destructive">
-                        <AlertTriangle className="h-4 w-4" />
-                        <AlertDescription>{error}</AlertDescription>
-                      </Alert>
-                    ))}
-                  </div>
-                )}
+                {result.bimi.errors.map((error, idx) => (
+                  <Alert key={idx} variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription>{error}</AlertDescription>
+                  </Alert>
+                ))}
               </div>
             ))
           )}
