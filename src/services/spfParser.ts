@@ -92,7 +92,7 @@ export const countTotalSPFLookups = async (
         visited.add(includeDomain);
         
         try {
-          console.log(`${'  '.repeat(indent)}🔍 Fetching nested SPF for ${includeDomain} (lookup #${currentLookupNumber})`);
+          console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: include ${includeDomain}`);
           const nestedRecord = await queryDnsRecord(includeDomain, 'TXT');
           
           if (nestedRecord && nestedRecord.includes('v=spf1')) {
@@ -116,9 +116,10 @@ export const countTotalSPFLookups = async (
     } else if (part.startsWith('redirect=')) {
       const redirectDomain = part.substring(9);
       globalLookupCounter++;
+      const currentLookupNumber = globalLookupCounter;
       
       const lookupDetail: LookupDetail = {
-        number: globalLookupCounter,
+        number: currentLookupNumber,
         type: 'redirect',
         domain: redirectDomain,
         indent: indent
@@ -128,7 +129,7 @@ export const countTotalSPFLookups = async (
         visited.add(redirectDomain);
         
         try {
-          console.log(`${'  '.repeat(indent)}🔍 Fetching redirect SPF for ${redirectDomain} (lookup #${globalLookupCounter})`);
+          console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: redirect ${redirectDomain}`);
           const redirectRecord = await queryDnsRecord(redirectDomain, 'TXT');
           
           if (redirectRecord && redirectRecord.includes('v=spf1')) {
@@ -151,13 +152,14 @@ export const countTotalSPFLookups = async (
       
     } else if (part.match(/^[+\-~?]?(a|mx|ptr|exists):/)) {
       globalLookupCounter++;
+      const currentLookupNumber = globalLookupCounter;
       const mechanism = part.match(/^[+\-~?]?(a|mx|ptr|exists):/);
       const domain = part.split(':')[1];
       
-      console.log(`${'  '.repeat(indent)}🔍 DNS lookup for ${mechanism![1]} mechanism: ${domain} (lookup #${globalLookupCounter})`);
+      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: ${mechanism![1]} ${domain}`);
       
       lookupDetails.push({
-        number: globalLookupCounter,
+        number: currentLookupNumber,
         type: mechanism![1] as 'a' | 'mx' | 'ptr' | 'exists',
         domain: domain,
         indent: indent
@@ -165,12 +167,13 @@ export const countTotalSPFLookups = async (
       
     } else if (part.match(/^[+\-~?]?(a|mx)$/)) {
       globalLookupCounter++;
+      const currentLookupNumber = globalLookupCounter;
       const mechanism = part.match(/^[+\-~?]?(a|mx)$/);
       
-      console.log(`${'  '.repeat(indent)}🔍 DNS lookup for ${mechanism![1]} mechanism on current domain (lookup #${globalLookupCounter})`);
+      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: ${mechanism![1]} (current domain)`);
       
       lookupDetails.push({
-        number: globalLookupCounter,
+        number: currentLookupNumber,
         type: mechanism![1] as 'a' | 'mx',
         domain: 'current domain',
         indent: indent
@@ -178,6 +181,7 @@ export const countTotalSPFLookups = async (
     }
   }
   
+  // Return the final global counter only from the top-level call
   return {
     totalLookups: globalLookupCounter,
     lookupDetails,
