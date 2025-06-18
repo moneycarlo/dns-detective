@@ -1,4 +1,3 @@
-
 // Cloudflare DNS over HTTPS API
 const DNS_API_BASE = 'https://cloudflare-dns.com/dns-query';
 
@@ -20,54 +19,42 @@ export const queryDnsRecord = async (domain: string, recordType: string): Promis
     });
     
     if (!response.ok) {
-      throw new Error(`DNS query failed: ${response.status}`);
+      throw new Error(`DNS query failed with status: ${response.status}`);
     }
     
     const data: DnsResponse = await response.json();
     
-    if (data.Status !== 0 || !data.Answer || data.Answer.length === 0) {
+    if (data.Status !== 0 || !Array.isArray(data.Answer) || data.Answer.length === 0) {
       return null;
     }
     
     // For TXT records, we need to find the specific record we're looking for
     if (recordType === 'TXT') {
-      // For SPF records on the main domain, look for v=spf1
-      if (!domain.startsWith('_dmarc.') && !domain.startsWith('default._bimi.')) {
-        const spfRecord = data.Answer.find(record => 
-          record.data.replace(/"/g, '').includes('v=spf1')
+      const findTxtRecord = (searchText: string) => {
+        const found = data.Answer?.find(record => 
+          record && typeof record.data === 'string' && record.data.replace(/"/g, '').includes(searchText)
         );
-        if (spfRecord) {
-          return spfRecord.data.replace(/"/g, '');
-        }
+        return found ? found.data.replace(/"/g, '') : null;
       }
-      
-      // For DMARC records, look for v=DMARC1
+
       if (domain.startsWith('_dmarc.')) {
-        const dmarcRecord = data.Answer.find(record => 
-          record.data.replace(/"/g, '').includes('v=DMARC1')
-        );
-        if (dmarcRecord) {
-          return dmarcRecord.data.replace(/"/g, '');
-        }
+        return findTxtRecord('v=DMARC1');
       }
-      
-      // For BIMI records, look for v=BIMI1
       if (domain.startsWith('default._bimi.')) {
-        const bimiRecord = data.Answer.find(record => 
-          record.data.replace(/"/g, '').includes('v=BIMI1')
-        );
-        if (bimiRecord) {
-          return bimiRecord.data.replace(/"/g, '');
-        }
+        return findTxtRecord('v=BIMI1');
       }
-      
-      return null;
+      // Default to SPF for other TXT queries on the root domain
+      return findTxtRecord('v=spf1');
     }
     
     // For other record types, return the first record
-    return data.Answer[0].data.replace(/"/g, '');
+    if (data.Answer[0] && typeof data.Answer[0].data === 'string') {
+        return data.Answer[0].data.replace(/"/g, '');
+    }
+
+    return null;
   } catch (error) {
     console.error(`DNS query error for ${domain} (${recordType}):`, error);
-    return null;
+    throw new Error(`DNS query failed for ${domain}. Please check the domain and network connection.`);
   }
 };
