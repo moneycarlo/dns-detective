@@ -19,23 +19,29 @@ export const queryDnsRecord = async (domain: string, recordType: string): Promis
     });
     
     if (!response.ok) {
-      throw new Error(`DNS query failed with status: ${response.status}`);
+      console.error(`DNS query for ${domain} [${recordType}] failed with status: ${response.status}`);
+      return null; // Don't throw, allow analysis to continue
     }
     
-    const data: DnsResponse = await response.json();
+    // Handle cases where the response might not be valid JSON or is empty
+    const responseText = await response.text();
+    if (!responseText) {
+      return null;
+    }
+    const data: DnsResponse = JSON.parse(responseText);
     
     if (data.Status !== 0 || !Array.isArray(data.Answer) || data.Answer.length === 0) {
       return null;
     }
     
-    // For TXT records, we need to find the specific record we're looking for
+    // For TXT records, find the specific record we're looking for
     if (recordType === 'TXT') {
       const findTxtRecord = (searchText: string) => {
         const found = data.Answer?.find(record => 
           record && typeof record.data === 'string' && record.data.replace(/"/g, '').includes(searchText)
         );
         return found ? found.data.replace(/"/g, '') : null;
-      }
+      };
 
       if (domain.startsWith('_dmarc.')) {
         return findTxtRecord('v=DMARC1');
@@ -43,18 +49,23 @@ export const queryDnsRecord = async (domain: string, recordType: string): Promis
       if (domain.startsWith('default._bimi.')) {
         return findTxtRecord('v=BIMI1');
       }
-      // Default to SPF for other TXT queries on the root domain
-      return findTxtRecord('v=spf1');
+      // Default to SPF for other TXT queries
+      const spfRecord = findTxtRecord('v=spf1');
+      if (spfRecord) return spfRecord;
+      
+      // Fallback for domains with multiple TXT records where the first isn't the one we want.
+      const genericTxt = data.Answer?.find(r => r && typeof r.data === 'string');
+      return genericTxt ? genericTxt.data.replace(/"/g, '') : null;
     }
     
-    // For other record types, return the first record
+    // For other record types (not currently used but good to have)
     if (data.Answer[0] && typeof data.Answer[0].data === 'string') {
         return data.Answer[0].data.replace(/"/g, '');
     }
 
     return null;
   } catch (error) {
-    console.error(`DNS query error for ${domain} (${recordType}):`, error);
-    throw new Error(`DNS query failed for ${domain}. Please check the domain and network connection.`);
+    console.error(`DNS query or parsing error for ${domain} (${recordType}):`, error);
+    return null; // Return null on any failure to prevent crashing the application
   }
 };
