@@ -68,39 +68,43 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     lookupDetails: []
   };
 
-  // 1. Query SPF record
-  const spfRecord = await queryDnsRecord(domain, 'TXT');
-  console.log(`🔍 SPF record found for ${domain}:`, spfRecord || 'None');
+  // 1. Query and Process SPF record
+  try {
+    const spfRecord = await queryDnsRecord(domain, 'TXT');
+    console.log(`🔍 SPF record found for ${domain}:`, spfRecord || 'None');
+    
+    if (spfRecord && spfRecord.includes('v=spf1')) {
+      const parsedSpf = parseSPFRecord(spfRecord);
+      
+      console.log(`🔍 Counting total SPF lookups for ${domain}...`);
+      const counter = { current: 0 };
+      const { lookupDetails, nestedLookups } = await countTotalSPFLookups(spfRecord, domain, new Set(), 0, counter);
+      const totalLookups = counter.current;
+      console.log(`📊 Total SPF lookups for ${domain}: ${totalLookups}`);
+      
+      spfData = {
+        record: spfRecord,
+        valid: true,
+        includes: parsedSpf.includes,
+        redirects: parsedSpf.redirects,
+        mechanisms: parsedSpf.mechanisms,
+        errors: [],
+        nestedLookups: nestedLookups,
+        lookupCount: totalLookups,
+        exceedsLookupLimit: totalLookups > 10,
+        lookupDetails: lookupDetails,
+      };
   
-  if (spfRecord && spfRecord.includes('v=spf1')) {
-    const parsedSpf = parseSPFRecord(spfRecord);
-    
-    console.log(`🔍 Counting total SPF lookups for ${domain}...`);
-    const counter = { current: 0 };
-    const { lookupDetails, nestedLookups } = await countTotalSPFLookups(spfRecord, domain, new Set(), 0, counter);
-    const totalLookups = counter.current;
-    
-    console.log(`📊 Total SPF lookups for ${domain}: ${totalLookups}`);
-    
-    spfData = {
-      record: spfRecord,
-      valid: true,
-      includes: parsedSpf.includes,
-      redirects: parsedSpf.redirects,
-      mechanisms: parsedSpf.mechanisms,
-      errors: [],
-      nestedLookups: nestedLookups,
-      lookupCount: totalLookups,
-      exceedsLookupLimit: totalLookups > 10,
-      lookupDetails: lookupDetails,
-    };
-
-    if (spfData.exceedsLookupLimit) {
-        spfData.errors.push(`SPF record exceeds 10 DNS lookup limit (${spfData.lookupCount}). This may cause SPF authentication failures.`);
+      if (spfData.exceedsLookupLimit) {
+          spfData.errors.push(`SPF record exceeds 10 DNS lookup limit (${spfData.lookupCount}). This may cause SPF authentication failures.`);
+      }
+  
+    } else {
+        spfData.errors.push('No SPF record found');
     }
-
-  } else {
-      spfData.errors.push('No SPF record found');
+  } catch(e) {
+    console.error(`❌ SPF processing failed for ${domain}:`, e);
+    spfData.errors.push(`Failed to process SPF record: ${e instanceof Error ? e.message : String(e)}`);
   }
   
   let dmarcData: DomainResult['dmarc'] = {
@@ -142,10 +146,9 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
             reportingEmails: parsedDmarc.reportingEmails,
             ruaEmails: parsedDmarc.ruaEmails,
             rufEmails: parsedDmarc.rufEmails,
-            errors: [], // Initialize empty, parsing errors from dmarcParser already in warnings/errors
+            errors: [],
             warnings: parsedDmarc.warnings
         };
-        // Add additional DMARC validation logic here if needed, setting dmarcData.valid to false
     } catch (e) {
         dmarcData.errors.push(`Failed to parse DMARC record: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -171,11 +174,11 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
         const parsedBimi = parseBIMIRecord(bimiRecord);
         bimiData = {
             record: bimiRecord,
-            valid: true, // Assume valid unless errors are found during parsing/validation
+            valid: true,
             logoUrl: parsedBimi.logoUrl,
             certificateUrl: parsedBimi.certificateUrl,
             certificateExpiry: parsedBimi.certificateExpiry,
-            errors: [] // Initialize empty, add specific errors below
+            errors: []
         };
 
         if (!bimiData.certificateUrl) {
@@ -183,7 +186,6 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
         } else if (bimiData.certificateExpiry && new Date(bimiData.certificateExpiry) < new Date()) {
             bimiData.errors.push(`BIMI certificate expired on ${bimiData.certificateExpiry}.`);
         }
-        // Add additional BIMI validation logic here if needed, setting bimiData.valid to false
     } catch (e) {
         bimiData.errors.push(`Failed to parse BIMI record: ${e instanceof Error ? e.message : String(e)}`);
     }
@@ -196,12 +198,9 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
   console.log('DMARC:', dmarcData.record ? '✓' : '✗', dmarcData.errors.length > 0 ? `(${dmarcData.errors.length} errors)` : '');
   console.log('BIMI:', bimiData.record ? '✓' : '✗', bimiData.errors.length > 0 ? `(${bimiData.errors.length} errors)` : '');
   
-  // Determine overall status based on record presence and validity
   let overallStatus: 'completed' | 'error' = 'completed';
-  if (!spfData.record && !dmarcData.record && !bimiData.record) {
-    overallStatus = 'completed'; // No records found, but still a completed analysis
-  } else if (spfData.errors.length > 0 || dmarcData.errors.length > 0 || bimiData.errors.length > 0) {
-    overallStatus = 'error'; // At least one record had an error or was missing when expected
+  if (spfData.errors.length > 0 || dmarcData.errors.length > 0 || bimiData.errors.length > 0) {
+    overallStatus = 'error';
   }
 
   return {
@@ -209,7 +208,7 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     spf: spfData,
     dmarc: dmarcData,
     bimi: bimiData,
-    websiteLogo: null, // This is not implemented in the provided code, so it remains null
+    websiteLogo: null,
     status: overallStatus
   };
 };
