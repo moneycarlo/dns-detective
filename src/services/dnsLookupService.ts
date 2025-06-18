@@ -1,6 +1,7 @@
+
 import { DomainResult } from '@/types/domain';
 import { queryDnsRecord } from './dnsQuery';
-import { parseSPFRecord } from './spfParser';
+import { parseSPFRecord, countTotalSPFLookups } from './spfParser';
 import { parseDMARCRecord } from './dmarcParser';
 import { parseBIMIRecord } from './bimiParser';
 
@@ -72,6 +73,10 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
   
   if (spfRecord && spfRecord.includes('v=spf1')) {
     const parsed = parseSPFRecord(spfRecord);
+    
+    // Get more accurate lookup count including nested lookups
+    const totalLookups = await countTotalSPFLookups(spfRecord);
+    
     spfData = {
       record: spfRecord,
       valid: true,
@@ -80,8 +85,8 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
       mechanisms: parsed.mechanisms,
       errors: [],
       nestedLookups: {},
-      lookupCount: parsed.lookupCount,
-      exceedsLookupLimit: parsed.exceedsLookupLimit
+      lookupCount: totalLookups,
+      exceedsLookupLimit: totalLookups > 10
     };
     
     // Query nested includes for demonstration
