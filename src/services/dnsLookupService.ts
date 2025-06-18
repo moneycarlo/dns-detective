@@ -1,4 +1,3 @@
-
 import { DomainResult } from '@/types/domain';
 import { queryDnsRecord } from './dnsQuery';
 import { parseSPFRecord, countTotalSPFLookups } from './spfParser';
@@ -18,7 +17,8 @@ export const performDnsLookup = async (domainList: string[]): Promise<DomainResu
       errors: [],
       nestedLookups: {},
       lookupCount: 0,
-      exceedsLookupLimit: false
+      exceedsLookupLimit: false,
+      lookupDetails: []
     },
     dmarc: {
       record: null,
@@ -64,7 +64,8 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     errors: [],
     nestedLookups: {},
     lookupCount: 0,
-    exceedsLookupLimit: false
+    exceedsLookupLimit: false,
+    lookupDetails: []
   };
 
   // 1. Query SPF record
@@ -75,20 +76,23 @@ export const performActualDnsLookup = async (domain: string): Promise<DomainResu
     const parsedSpf = parseSPFRecord(spfRecord);
     
     console.log(`🔍 Counting total SPF lookups for ${domain}...`);
-    // Pass a new Set for each domain lookup session to ensure independent visited tracking
-    const lookupResult = await countTotalSPFLookups(spfRecord, domain, new Set(), 0);
-    console.log(`📊 Total SPF lookups for ${domain}: ${lookupResult.totalLookups}`);
+    const counter = { current: 0 };
+    const { lookupDetails, nestedLookups } = await countTotalSPFLookups(spfRecord, domain, new Set(), 0, counter);
+    const totalLookups = counter.current;
+    
+    console.log(`📊 Total SPF lookups for ${domain}: ${totalLookups}`);
     
     spfData = {
       record: spfRecord,
-      valid: true, // Assume valid unless errors are found during parsing/validation
+      valid: true,
       includes: parsedSpf.includes,
       redirects: parsedSpf.redirects,
       mechanisms: parsedSpf.mechanisms,
-      errors: [], // Initialize empty, add specific errors below
-      nestedLookups: lookupResult.nestedLookups,
-      lookupCount: lookupResult.totalLookups,
-      exceedsLookupLimit: lookupResult.totalLookups > 10
+      errors: [],
+      nestedLookups: nestedLookups,
+      lookupCount: totalLookups,
+      exceedsLookupLimit: totalLookups > 10,
+      lookupDetails: lookupDetails,
     };
 
     if (spfData.exceedsLookupLimit) {
