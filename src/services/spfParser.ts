@@ -17,6 +17,7 @@ export interface LookupDetail {
   domain: string;
   record?: string;
   nested?: LookupDetail[];
+  indent?: number;
 }
 
 export const parseSPFRecord = (record: string): SPFParseResult => {
@@ -54,12 +55,21 @@ export const parseSPFRecord = (record: string): SPFParseResult => {
   };
 };
 
-// Recursive function to count and track all SPF lookups
+// Global counter for sequential numbering across all recursive calls
+let globalLookupCounter = 0;
+
+// Recursive function to count and track all SPF lookups with proper sequential numbering
 export const countTotalSPFLookups = async (
   record: string, 
   visited: Set<string> = new Set(),
-  lookupNumber: { current: number } = { current: 0 }
+  indent: number = 0
 ): Promise<{ totalLookups: number; lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string } }> => {
+  
+  // Reset global counter only for the initial call (indent 0)
+  if (indent === 0) {
+    globalLookupCounter = 0;
+  }
+  
   const lookupDetails: LookupDetail[] = [];
   const nestedLookups: { [key: string]: string } = {};
   const parts = record.split(/\s+/);
@@ -67,13 +77,14 @@ export const countTotalSPFLookups = async (
   for (const part of parts) {
     if (part.startsWith('include:')) {
       const includeDomain = part.substring(8);
-      lookupNumber.current++;
-      const currentLookupNumber = lookupNumber.current;
+      globalLookupCounter++;
+      const currentLookupNumber = globalLookupCounter;
       
       const lookupDetail: LookupDetail = {
         number: currentLookupNumber,
         type: 'include',
-        domain: includeDomain
+        domain: includeDomain,
+        indent: indent
       };
       
       // Avoid infinite recursion by tracking visited domains
@@ -81,22 +92,22 @@ export const countTotalSPFLookups = async (
         visited.add(includeDomain);
         
         try {
-          console.log(`🔍 Fetching nested SPF for ${includeDomain} (lookup #${currentLookupNumber})`);
+          console.log(`${'  '.repeat(indent)}🔍 Fetching nested SPF for ${includeDomain} (lookup #${currentLookupNumber})`);
           const nestedRecord = await queryDnsRecord(includeDomain, 'TXT');
           
           if (nestedRecord && nestedRecord.includes('v=spf1')) {
             lookupDetail.record = nestedRecord;
             nestedLookups[includeDomain] = nestedRecord;
             
-            // Recursively process nested includes
-            const nestedResult = await countTotalSPFLookups(nestedRecord, visited, lookupNumber);
+            // Recursively process nested includes with increased indent
+            const nestedResult = await countTotalSPFLookups(nestedRecord, visited, indent + 1);
             lookupDetail.nested = nestedResult.lookupDetails;
             
             // Merge nested lookups
             Object.assign(nestedLookups, nestedResult.nestedLookups);
           }
         } catch (error) {
-          console.error(`❌ Error fetching nested SPF for ${includeDomain}:`, error);
+          console.error(`${'  '.repeat(indent)}❌ Error fetching nested SPF for ${includeDomain}:`, error);
         }
       }
       
@@ -104,63 +115,71 @@ export const countTotalSPFLookups = async (
       
     } else if (part.startsWith('redirect=')) {
       const redirectDomain = part.substring(9);
-      lookupNumber.current++;
+      globalLookupCounter++;
       
       const lookupDetail: LookupDetail = {
-        number: lookupNumber.current,
+        number: globalLookupCounter,
         type: 'redirect',
-        domain: redirectDomain
+        domain: redirectDomain,
+        indent: indent
       };
       
       if (!visited.has(redirectDomain)) {
         visited.add(redirectDomain);
         
         try {
+          console.log(`${'  '.repeat(indent)}🔍 Fetching redirect SPF for ${redirectDomain} (lookup #${globalLookupCounter})`);
           const redirectRecord = await queryDnsRecord(redirectDomain, 'TXT');
           
           if (redirectRecord && redirectRecord.includes('v=spf1')) {
             lookupDetail.record = redirectRecord;
             nestedLookups[redirectDomain] = redirectRecord;
             
-            // Recursively process redirect
-            const nestedResult = await countTotalSPFLookups(redirectRecord, visited, lookupNumber);
+            // Recursively process redirect with increased indent
+            const nestedResult = await countTotalSPFLookups(redirectRecord, visited, indent + 1);
             lookupDetail.nested = nestedResult.lookupDetails;
             
             // Merge nested lookups
             Object.assign(nestedLookups, nestedResult.nestedLookups);
           }
         } catch (error) {
-          console.error(`❌ Error fetching redirect SPF for ${redirectDomain}:`, error);
+          console.error(`${'  '.repeat(indent)}❌ Error fetching redirect SPF for ${redirectDomain}:`, error);
         }
       }
       
       lookupDetails.push(lookupDetail);
       
     } else if (part.match(/^[+\-~?]?(a|mx|ptr|exists):/)) {
-      lookupNumber.current++;
+      globalLookupCounter++;
       const mechanism = part.match(/^[+\-~?]?(a|mx|ptr|exists):/);
       const domain = part.split(':')[1];
       
+      console.log(`${'  '.repeat(indent)}🔍 DNS lookup for ${mechanism![1]} mechanism: ${domain} (lookup #${globalLookupCounter})`);
+      
       lookupDetails.push({
-        number: lookupNumber.current,
+        number: globalLookupCounter,
         type: mechanism![1] as 'a' | 'mx' | 'ptr' | 'exists',
-        domain: domain
+        domain: domain,
+        indent: indent
       });
       
     } else if (part.match(/^[+\-~?]?(a|mx)$/)) {
-      lookupNumber.current++;
+      globalLookupCounter++;
       const mechanism = part.match(/^[+\-~?]?(a|mx)$/);
       
+      console.log(`${'  '.repeat(indent)}🔍 DNS lookup for ${mechanism![1]} mechanism on current domain (lookup #${globalLookupCounter})`);
+      
       lookupDetails.push({
-        number: lookupNumber.current,
+        number: globalLookupCounter,
         type: mechanism![1] as 'a' | 'mx',
-        domain: 'current domain'
+        domain: 'current domain',
+        indent: indent
       });
     }
   }
   
   return {
-    totalLookups: lookupNumber.current,
+    totalLookups: globalLookupCounter,
     lookupDetails,
     nestedLookups
   };
