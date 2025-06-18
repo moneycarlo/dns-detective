@@ -5,6 +5,7 @@ export interface SPFParseResult {
   mechanisms: string[];
   includes: string[];
   redirects: string[];
+  // These are derived from countTotalSPFLookups, not directly parsed from the record string
   lookupCount: number;
   exceedsLookupLimit: boolean;
   nestedLookups: { [key: string]: string };
@@ -20,26 +21,22 @@ export interface LookupDetail {
   indent?: number;
 }
 
-export const parseSPFRecord = (record: string): SPFParseResult => {
+/**
+ * Parses the raw SPF record string to extract mechanisms, includes, and redirects.
+ * This function does NOT count lookups; counting is handled by countTotalSPFLookups.
+ */
+export const parseSPFRecord = (record: string): Pick<SPFParseResult, 'mechanisms' | 'includes' | 'redirects'> => {
   const mechanisms = [];
   const includes = [];
   const redirects = [];
-  let lookupCount = 0;
   
-  // Split by spaces and analyze each mechanism
   const parts = record.split(/\s+/);
   
   for (const part of parts) {
     if (part.startsWith('include:')) {
       includes.push(part.substring(8));
-      lookupCount++; // Each include counts as a lookup
     } else if (part.startsWith('redirect=')) {
       redirects.push(part.substring(9));
-      lookupCount++; // Redirect counts as a lookup
-    } else if (part.match(/^[+\-~?]?(a|mx|ptr|exists):/)) {
-      lookupCount++; // These mechanisms require DNS lookups
-    } else if (part.match(/^[+\-~?]?(a|mx)$/)) {
-      lookupCount++; // Plain 'a' and 'mx' mechanisms also require DNS lookups
     }
     mechanisms.push(part);
   }
@@ -47,146 +44,134 @@ export const parseSPFRecord = (record: string): SPFParseResult => {
   return {
     mechanisms,
     includes,
-    redirects,
-    lookupCount,
-    exceedsLookupLimit: lookupCount > 10,
-    nestedLookups: {},
-    lookupDetails: []
+    redirects
   };
 };
 
-// Global counter for sequential numbering across all recursive calls
+// Global counter for sequential numbering across all recursive calls for a single domain analysis session.
+// It's reset for each new domain analysis session (when indent === 0).
 let globalLookupCounter = 0;
 
-// Recursive function to count and track all SPF lookups with proper sequential numbering
+/**
+ * Recursively counts and tracks all DNS lookups required by an SPF record, including nested ones.
+ * Provides sequential numbering and indentation for clarity.
+ * @param record The current SPF record string to analyze.
+ * @param domain The domain associated with the current SPF record. Used for logging and 'a'/'mx' lookups.
+ * @param visited A Set of domains already visited in the current lookup chain to prevent infinite recursion.
+ * @param indent The current indentation level for console logging.
+ * @returns An object containing the total lookup count, detailed lookup information, and nested SPF records.
+ */
 export const countTotalSPFLookups = async (
-  record: string, 
+  record: string,
+  domain: string,
   visited: Set<string> = new Set(),
   indent: number = 0
 ): Promise<{ totalLookups: number; lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string } }> => {
   
-  // Reset global counter only for the initial call (indent 0)
+  // Reset global counter only for the initial call (top-level domain lookup)
   if (indent === 0) {
     globalLookupCounter = 0;
   }
   
-  const lookupDetails: LookupDetail[] = [];
+  const currentLookupDetails: LookupDetail[] = [];
   const nestedLookups: { [key: string]: string } = {};
   const parts = record.split(/\s+/);
   
+  // Add the current domain to the visited set to prevent immediate re-processing
+  // in case of self-references or circular dependencies within the same record.
+  // Note: For 'include' and 'redirect', we check 'visited.has(lookupDomain)' before recursing.
+  const currentVisitedForRecursion = new Set(visited); // Create a new set for this recursion level
+  currentVisitedForRecursion.add(domain);
+
   for (const part of parts) {
-    if (part.startsWith('include:')) {
-      const includeDomain = part.substring(8);
+    // Check for mechanisms that explicitly require a DNS lookup as per RFC 7208 (Section 4.6.4)
+    // These are 'a', 'mx', 'ptr', 'exists', 'include', and 'redirect'.
+    // The 'all', 'ip4', 'ip6' mechanisms do not count as lookups.
+    
+    let isLookupMechanism = false;
+    let lookupType: 'include' | 'redirect' | 'a' | 'mx' | 'ptr' | 'exists' | null = null;
+    let lookupDomain: string | null = null;
+    let fetchedRecord: string | null = null;
+    let nestedLookupResults: LookupDetail[] | undefined;
+
+    const includeMatch = part.match(/^include:(.+)$/);
+    const redirectMatch = part.match(/^redirect=(.+)$/);
+    const mechanismMatch = part.match(/^[+\-~?]?(a|mx|ptr|exists)(?::([^ ]+))?$/);
+
+    if (includeMatch) {
+      isLookupMechanism = true;
+      lookupType = 'include';
+      lookupDomain = includeMatch[1];
+    } else if (redirectMatch) {
+      isLookupMechanism = true;
+      lookupType = 'redirect';
+      lookupDomain = redirectMatch[1];
+    } else if (mechanismMatch) {
+      isLookupMechanism = true;
+      lookupType = mechanismMatch[1] as 'a' | 'mx' | 'ptr' | 'exists';
+      lookupDomain = mechanismMatch[2] || domain; // Use captured domain or current domain if not specified
+    }
+
+    if (isLookupMechanism && lookupType && lookupDomain !== null) {
+      // Increment global counter for every new lookup found
       globalLookupCounter++;
       const currentLookupNumber = globalLookupCounter;
+
+      const logPrefix = '  '.repeat(indent);
       
-      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: include ${includeDomain}`);
-      
-      const lookupDetail: LookupDetail = {
-        number: currentLookupNumber,
-        type: 'include',
-        domain: includeDomain,
-        indent: indent
-      };
-      
-      // Avoid infinite recursion by tracking visited domains
-      if (!visited.has(includeDomain)) {
-        visited.add(includeDomain);
-        
-        try {
-          const nestedRecord = await queryDnsRecord(includeDomain, 'TXT');
-          
-          if (nestedRecord && nestedRecord.includes('v=spf1')) {
-            lookupDetail.record = nestedRecord;
-            nestedLookups[includeDomain] = nestedRecord;
+      console.log(`${logPrefix}🔍 Lookup #${currentLookupNumber}: ${lookupType} ${lookupDomain === domain ? '(current domain)' : lookupDomain}`);
+
+      // Handle 'include' and 'redirect' mechanisms recursively
+      if ((lookupType === 'include' || lookupType === 'redirect')) {
+        // Only recurse if the domain has not been visited in the current path to prevent infinite loops
+        if (!visited.has(lookupDomain)) {
+          // Add the domain to the visited set for the next level of recursion
+          currentVisitedForRecursion.add(lookupDomain);
+
+          try {
+            fetchedRecord = await queryDnsRecord(lookupDomain, 'TXT');
             
-            // Recursively process nested includes with increased indent
-            const nestedResult = await countTotalSPFLookups(nestedRecord, visited, indent + 1);
-            lookupDetail.nested = nestedResult.lookupDetails;
-            
-            // Merge nested lookups
-            Object.assign(nestedLookups, nestedResult.nestedLookups);
+            if (fetchedRecord) {
+              nestedLookups[lookupDomain] = fetchedRecord; // Store the fetched record
+              
+              // Only parse/recurse if it's a valid SPF record (starts with v=spf1)
+              if (fetchedRecord.includes('v=spf1')) {
+                const nestedResult = await countTotalSPFLookups(fetchedRecord, lookupDomain, currentVisitedForRecursion, indent + 1);
+                nestedLookupResults = nestedResult.lookupDetails;
+                // Merge nestedLookups from recursive calls into the current level's nestedLookups
+                Object.assign(nestedLookups, nestedResult.nestedLookups);
+              } else {
+                console.log(`${logPrefix}   - Record for ${lookupDomain} is not an SPF record.`);
+              }
+            } else {
+              console.log(`${logPrefix}   - No TXT record found for ${lookupDomain}.`);
+              fetchedRecord = `No TXT record found`; // Indicate no record was found
+            }
+          } catch (error) {
+            console.error(`${logPrefix}❌ Error fetching ${lookupType} SPF for ${lookupDomain}:`, error);
+            fetchedRecord = `Error fetching record: ${error instanceof Error ? error.message : String(error)}`;
           }
-        } catch (error) {
-          console.error(`${'  '.repeat(indent)}❌ Error fetching nested SPF for ${includeDomain}:`, error);
+        } else {
+          console.log(`${logPrefix}⚠️ Lookup #${currentLookupNumber}: ${lookupType} ${lookupDomain} (already visited, skipping recursion)`);
+          fetchedRecord = `Skipped (circular reference)`;
         }
       }
       
-      lookupDetails.push(lookupDetail);
-      
-    } else if (part.startsWith('redirect=')) {
-      const redirectDomain = part.substring(9);
-      globalLookupCounter++;
-      const currentLookupNumber = globalLookupCounter;
-      
-      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: redirect ${redirectDomain}`);
-      
-      const lookupDetail: LookupDetail = {
+      // Add details for the current lookup to the list
+      currentLookupDetails.push({
         number: currentLookupNumber,
-        type: 'redirect',
-        domain: redirectDomain,
-        indent: indent
-      };
-      
-      if (!visited.has(redirectDomain)) {
-        visited.add(redirectDomain);
-        
-        try {
-          const redirectRecord = await queryDnsRecord(redirectDomain, 'TXT');
-          
-          if (redirectRecord && redirectRecord.includes('v=spf1')) {
-            lookupDetail.record = redirectRecord;
-            nestedLookups[redirectDomain] = redirectRecord;
-            
-            // Recursively process redirect with increased indent
-            const nestedResult = await countTotalSPFLookups(redirectRecord, visited, indent + 1);
-            lookupDetail.nested = nestedResult.lookupDetails;
-            
-            // Merge nested lookups
-            Object.assign(nestedLookups, nestedResult.nestedLookups);
-          }
-        } catch (error) {
-          console.error(`${'  '.repeat(indent)}❌ Error fetching redirect SPF for ${redirectDomain}:`, error);
-        }
-      }
-      
-      lookupDetails.push(lookupDetail);
-      
-    } else if (part.match(/^[+\-~?]?(a|mx|ptr|exists):/)) {
-      globalLookupCounter++;
-      const currentLookupNumber = globalLookupCounter;
-      const mechanism = part.match(/^[+\-~?]?(a|mx|ptr|exists):/);
-      const domain = part.split(':')[1];
-      
-      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: ${mechanism![1]} ${domain}`);
-      
-      lookupDetails.push({
-        number: currentLookupNumber,
-        type: mechanism![1] as 'a' | 'mx' | 'ptr' | 'exists',
-        domain: domain,
-        indent: indent
-      });
-      
-    } else if (part.match(/^[+\-~?]?(a|mx)$/)) {
-      globalLookupCounter++;
-      const currentLookupNumber = globalLookupCounter;
-      const mechanism = part.match(/^[+\-~?]?(a|mx)$/);
-      
-      console.log(`${'  '.repeat(indent)}🔍 Lookup #${currentLookupNumber}: ${mechanism![1]} (current domain)`);
-      
-      lookupDetails.push({
-        number: currentLookupNumber,
-        type: mechanism![1] as 'a' | 'mx',
-        domain: 'current domain',
+        type: lookupType,
+        domain: lookupDomain,
+        record: fetchedRecord || undefined,
+        nested: nestedLookupResults,
         indent: indent
       });
     }
   }
   
-  // Return the final global counter - this is the TOTAL count across all recursion levels
   return {
-    totalLookups: globalLookupCounter,
-    lookupDetails,
-    nestedLookups
+    totalLookups: globalLookupCounter, // The cumulative count for this entire domain lookup session
+    lookupDetails: currentLookupDetails,
+    nestedLookups: nestedLookups
   };
 };
