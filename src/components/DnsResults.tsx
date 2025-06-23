@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DomainResult, LookupDetail, LookupType } from '@/types/domain';
-import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink } from 'lucide-react';
+import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink, Menu, Search } from 'lucide-react';
 
 // A safe component to render the BIMI logo
 const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUrl, domain }) => {
@@ -13,8 +13,8 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
 
   if (!logoUrl || hasError) {
     return (
-      <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">
-        {domain.charAt(0).toUpperCase()}
+      <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center text-gray-500 font-bold text-xl">
+        {domain ? domain.charAt(0).toUpperCase() : '?'}
       </div>
     );
   }
@@ -58,11 +58,12 @@ const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
   }
 };
 
+
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
 
   const renderDomainCard = (result: DomainResult, children: React.ReactNode) => (
-    <Card key={result.id + children?.toString()} className="overflow-hidden mb-4">
+    <Card key={result.id + result.lookupType} className="overflow-hidden mb-4">
       <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50">
         <CardTitle className="flex items-center justify-between">
           <span className="text-xl font-semibold text-gray-900">{result.domain}</span>
@@ -128,8 +129,50 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
             </div>
             <div>
                 <h4 className="font-medium mb-2">Email Client Preview</h4>
-                <div className="mx-auto max-w-xs">
-                    <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl"><div className="bg-black rounded-[2rem] relative overflow-hidden"><div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div><div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[28rem]"><div className="divide-y divide-gray-100 pt-12"><div className="px-4 py-4 bg-blue-50"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div><div className="flex-1 min-w-0"><div className="font-semibold text-gray-900 text-sm truncate">{result.domain}</div><div className="text-sm font-medium text-gray-800 truncate mb-1">Welcome to our newsletter!</div></div></div></div><div className="px-4 py-4"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0"></div><div className="flex-1"><div className="font-semibold text-gray-900 text-sm">Another Sender</div><div className="text-sm text-gray-600">A regular email example</div></div></div></div><div className="px-4 py-4"><div className="flex items-start gap-3"><div className="w-10 h-10 rounded-full bg-gray-300 flex-shrink-0"></div><div className="flex-1"><div className="font-semibold text-gray-900 text-sm">Third Email</div><div className="text-sm text-gray-600">Another regular email</div></div></div></div></div></div></div></div>
+                <div className="w-full max-w-sm mx-auto bg-gray-800 rounded-[2.5rem] p-3 shadow-2xl">
+                    <div className="w-full bg-white rounded-[2rem] overflow-hidden">
+                        <div className="px-4 py-3 bg-blue-600 text-white flex justify-between items-center">
+                            <Menu className="h-6 w-6" />
+                            <h2 className="text-lg font-semibold">Inbox</h2>
+                            <Search className="h-6 w-6" />
+                        </div>
+                        <ul className="divide-y divide-gray-200">
+                            {/* BIMI Email */}
+                            <li className="p-3 flex items-center space-x-4">
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
+                                    <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now! *</p>
+                                    <p className="text-sm text-gray-500 truncate">Welcome to the world of BIMI</p>
+                                </div>
+                            </li>
+                            {/* Static Examples */}
+                             <li className="p-3 flex items-center space-x-4">
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">A</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">Andrew Baker</p>
+                                    <p className="text-sm text-gray-800 truncate">Proposal Updates</p>
+                                    <p className="text-sm text-gray-500 truncate">Hey, I hope you had a nice weeke...</p>
+                                </div>
+                            </li>
+                             <li className="p-3 flex items-center space-x-4">
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">T</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">Taxi Receipts</p>
+                                    <p className="text-sm text-gray-800 truncate">Wednesday 24th May 11:15 ride.</p>
+                                    <p className="text-sm text-gray-500 truncate">Thank you for choosing Taxi servi...</p>
+                                </div>
+                            </li>
+                             <li className="p-3 flex items-center space-x-4">
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">G</div>
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-bold text-gray-900 truncate">General Bank</p>
+                                    <p className="text-sm text-gray-800 truncate">Online statement now available</p>
+                                    <p className="text-sm text-gray-500 truncate">Dear customer, Your online bank...</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
             </div>
@@ -147,13 +190,13 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
           <TabsTrigger value="dmarc" className="flex items-center gap-2"><Mail className="h-4 w-4" />DMARC</TabsTrigger>
           <TabsTrigger value="bimi" className="flex items-center gap-2"><Image className="h-4 w-4" />BIMI</TabsTrigger>
         </TabsList>
-        <TabsContent value="spf" className="mt-4 space-y-4">
+        <TabsContent value="spf" className="mt-4">
             {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'SPF').map(result => renderDomainCard(result, renderSPF(result)))}
         </TabsContent>
-        <TabsContent value="dmarc" className="mt-4 space-y-4">
+        <TabsContent value="dmarc" className="mt-4">
             {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'DMARC').map(result => renderDomainCard(result, renderDMARC(result)))}
         </TabsContent>
-        <TabsContent value="bimi" className="mt-4 space-y-4">
+        <TabsContent value="bimi" className="mt-4">
             {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'BIMI').map(result => renderDomainCard(result, renderBIMI(result)))}
         </TabsContent>
       </Tabs>
