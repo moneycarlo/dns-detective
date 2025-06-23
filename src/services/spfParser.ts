@@ -4,12 +4,11 @@ import { LookupDetail } from '../types/domain';
 export const countTotalSPFLookups = async (
   initialRecord: string,
   initialDomain: string
-): Promise<{ lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string }; totalLookups: number }> => {
+): Promise<{ lookupDetails: LookupDetail[]; nestedLookups: { [key: string]: string }; lookupCount: number }> => {
   const lookupDetails: LookupDetail[] = [];
   const nestedLookups: { [key: string]: string } = {};
-  let totalLookups = 0;
+  let lookupCount = 0;
 
-  // Use a queue for iterative, breadth-first traversal instead of recursion
   const queue: { record: string; domain: string; indent: number, parentDetails: LookupDetail[] }[] = 
     [{ record: initialRecord, domain: initialDomain, indent: 0, parentDetails: lookupDetails }];
   
@@ -43,9 +42,9 @@ export const countTotalSPFLookups = async (
       }
 
       if (lookupType && lookupDomain) {
-        totalLookups++;
+        lookupCount++;
         const currentDetail: LookupDetail = {
-          number: totalLookups,
+          number: lookupCount,
           type: lookupType,
           domain: lookupDomain,
           indent,
@@ -53,7 +52,7 @@ export const countTotalSPFLookups = async (
         };
         parentDetails.push(currentDetail);
 
-        if (totalLookups >= 10) continue; // Stop processing new lookups if limit is reached
+        if (lookupCount >= 10) continue;
 
         if (lookupType === 'include' || lookupType === 'redirect') {
           try {
@@ -63,7 +62,6 @@ export const countTotalSPFLookups = async (
             if (fetchedRecord) {
               currentDetail.record = fetchedRecord;
               nestedLookups[lookupDomain] = fetchedRecord;
-              // Add the nested record to the queue to be processed
               queue.push({ record: fetchedRecord, domain: lookupDomain, indent: indent + 1, parentDetails: currentDetail.nested! });
             } else {
               currentDetail.record = 'No valid SPF record found';
@@ -76,7 +74,7 @@ export const countTotalSPFLookups = async (
     }
   }
 
-  return { lookupDetails, nestedLookups, totalLookups };
+  return { lookupDetails, nestedLookups, lookupCount };
 };
 
 export const parseSPFRecord = (record: string) => {
