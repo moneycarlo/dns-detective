@@ -145,7 +145,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                                 </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
-                                    <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now! *</p>
+                                    <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now!</p>
                                     <p className="text-sm text-gray-500 truncate">Welcome to the world of BIMI</p>
                                 </div>
                             </li>
@@ -153,25 +153,25 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                              <li className="p-3 flex items-center space-x-4">
                                 <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">A</div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Andrew Baker</p>
-                                    <p className="text-sm text-gray-800 truncate">Proposal Updates</p>
+                                    <p className="text-sm font-bold text-gray-900 truncate">Amanda Kelly</p>
+                                    <p className="text-sm text-gray-800 truncate">Meeting Updates</p>
                                     <p className="text-sm text-gray-500 truncate">Hey, I hope you had a nice weeke...</p>
                                 </div>
                             </li>
                              <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">T</div>
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">R</div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Taxi Receipts</p>
-                                    <p className="text-sm text-gray-800 truncate">Wednesday 24th May 11:15 ride.</p>
-                                    <p className="text-sm text-gray-500 truncate">Thank you for choosing Taxi servi...</p>
+                                    <p className="text-sm font-bold text-gray-900 truncate">Rideshare Receipts</p>
+                                    <p className="text-sm text-gray-800 truncate">Monday 23rd June 10:04 ride.</p>
+                                    <p className="text-sm text-gray-500 truncate">Thank you for riding with us...</p>
                                 </div>
                             </li>
                              <li className="p-3 flex items-center space-x-4">
                                 <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">G</div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">General Bank</p>
-                                    <p className="text-sm text-gray-800 truncate">Online statement now available</p>
-                                    <p className="text-sm text-gray-500 truncate">Dear customer, Your online bank...</p>
+                                    <p className="text-sm font-bold text-gray-900 truncate">Your Credit Union</p>
+                                    <p className="text-sm text-gray-800 truncate">Your online statement is available</p>
+                                    <p className="text-sm text-gray-500 truncate">Dear Member, Your online stat...</p>
                                 </div>
                             </li>
                         </ul>
