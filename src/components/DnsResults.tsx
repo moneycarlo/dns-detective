@@ -24,28 +24,16 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   return (
     <div className="space-y-2 pt-2">
       {details.map((detail, index) => (
-        <div key={`${detail.number}-${index}`} className="pl-4 border-l-2">
+        <div key={`${detail.number}-${index}`} className="ml-4 pl-4 border-l-2">
           <div className="text-sm">
             <span className="font-mono text-gray-500">{detail.number}.</span> {detail.type}: <span className="font-medium">{detail.domain}</span>
           </div>
           {detail.record && <code className="block bg-gray-50 p-1.5 rounded-md text-xs mt-1 ml-4">{detail.record}</code>}
-          {detail.nested && <div className="mt-1"><LookupDetails details={detail.nested} /></div>}
+          {detail.nested && detail.nested.length > 0 && <div className="mt-1"><LookupDetails details={detail.nested} /></div>}
         </div>
       ))}
     </div>
   );
-};
-
-const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
-  if (!date) return <span className="text-gray-500">N/A</span>;
-  const expiry = new Date(date);
-  const now = new Date();
-  const oneMonthFromNow = new Date();
-  oneMonthFromNow.setMonth(now.getMonth() + 1);
-  let textColor = 'text-green-600';
-  if (expiry < now) textColor = 'text-red-600';
-  else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600';
-  return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
 };
 
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
@@ -71,13 +59,8 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                   {result.spf.record ? (
                     <div className="mt-2 space-y-2">
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.spf.record}</code>
-                      <p className="text-sm">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></p>
-                      {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && 
-                        <div>
-                          <h4 className="font-medium text-sm mt-2 mb-1">Lookup Details:</h4>
-                          <LookupDetails details={result.spf.lookupDetails} />
-                        </div>
-                      }
+                      <p className="text-sm font-medium">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></p>
+                      {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && <LookupDetails details={result.spf.lookupDetails} />}
                       {result.spf.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
                     </div>
                   ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.spf.errors[0] || 'No SPF record found.'}</AlertDescription></Alert>}
@@ -103,22 +86,28 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.bimi.record}</code>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div>
-                          <h4 className="font-medium mb-2">Details</h4>
-                          <div className="text-sm space-y-2 border p-3 rounded-md">
-                            <p><strong>CA:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'N/A'}</span></p>
-                            <p><strong>Expires:</strong> <ExpiryDate date={result.bimi.certificateExpiry} /></p>
-                          </div>
+                          <h4 className="font-medium mb-2">Certificate</h4>
+                          {!result.bimi.certificateUrl ? (
+                             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>No certificate (`a=`) tag found. A VMC is required by most providers.</AlertDescription></Alert>
+                          ) : (
+                             <p className="text-sm">Certificate found, but expiration and authority cannot be checked.</p>
+                          )}
                         </div>
                         <div>
                           <h4 className="font-medium mb-2">Email Client Preview</h4>
-                          <div className="p-4 bg-white rounded-lg border shadow-sm">
-                            <div className="flex items-center gap-3">
-                              <div className="w-12 h-12 flex-shrink-0"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div>
-                              <div className="flex-grow min-w-0">
-                                <p className="font-bold truncate">{result.domain}</p>
-                                <p className="text-sm text-gray-600 truncate">Your Awesome Email Subject</p>
-                              </div>
-                            </div>
+                          <div className="p-4 bg-gray-200 rounded-2xl">
+                             <div className="p-1 bg-white rounded-xl shadow-inner">
+                                <div className="flex items-center gap-3 p-3 border-b">
+                                  <div className="w-10 h-10 flex-shrink-0 rounded-full"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div>
+                                  <div className="flex-grow min-w-0">
+                                    <p className="font-bold truncate text-sm">{result.domain}</p>
+                                    <p className="text-xs text-gray-600 truncate">Welcome to our newsletter!</p>
+                                  </div>
+                                </div>
+                                <div className="p-3">
+                                    <p className="text-xs text-gray-500">Hi there, thanks for signing up...</p>
+                                </div>
+                             </div>
                           </div>
                         </div>
                       </div>
