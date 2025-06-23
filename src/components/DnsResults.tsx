@@ -22,11 +22,14 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
 const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   if (!details?.length) return null;
   return (
-    <div className="space-y-1 mt-2 text-xs">
+    <div className="space-y-2 pt-2">
       {details.map((detail, index) => (
-        <div key={`${detail.number}-${index}`} className="ml-4 pl-4 border-l-2">
-          <div><span className="font-mono text-gray-500">{detail.number}.</span> {detail.type}: <span className="font-medium">{detail.domain}</span></div>
-          {detail.nested && <LookupDetails details={detail.nested} />}
+        <div key={`${detail.number}-${index}`} className="pl-4 border-l-2">
+          <div className="text-sm">
+            <span className="font-mono text-gray-500">{detail.number}.</span> {detail.type}: <span className="font-medium">{detail.domain}</span>
+          </div>
+          {detail.record && <code className="block bg-gray-50 p-1.5 rounded-md text-xs mt-1 ml-4">{detail.record}</code>}
+          {detail.nested && <div className="mt-1"><LookupDetails details={detail.nested} /></div>}
         </div>
       ))}
     </div>
@@ -35,19 +38,15 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
 
 const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
   if (!date) return <span className="text-gray-500">N/A</span>;
-
   const expiry = new Date(date);
   const now = new Date();
   const oneMonthFromNow = new Date();
   oneMonthFromNow.setMonth(now.getMonth() + 1);
-
   let textColor = 'text-green-600';
   if (expiry < now) textColor = 'text-red-600';
   else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600';
-  
   return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
 };
-
 
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
@@ -62,25 +61,30 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
               <CardTitle>{result.domain}</CardTitle>
               <Badge variant="secondary">{result.lookupType}</Badge>
             </div>
-             {result.status === 'pending' && <p className="text-sm text-gray-500 flex items-center gap-2"><Clock size={14}/>Analyzing...</p>}
+            {result.status === 'pending' && <p className="text-sm text-gray-500 flex items-center gap-2"><Clock size={14}/>Analyzing...</p>}
           </CardHeader>
           {result.status !== 'pending' && (
             <CardContent className="space-y-6">
               {(result.lookupType === 'ALL' || result.lookupType === 'SPF') && (
-                <div id="spf">
+                <div>
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Shield size={16}/>SPF</h3>
                   {result.spf.record ? (
                     <div className="mt-2 space-y-2">
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.spf.record}</code>
                       <p className="text-sm">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></p>
-                      {result.spf.lookupDetails && <LookupDetails details={result.spf.lookupDetails} />}
+                      {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && 
+                        <div>
+                          <h4 className="font-medium text-sm mt-2 mb-1">Lookup Details:</h4>
+                          <LookupDetails details={result.spf.lookupDetails} />
+                        </div>
+                      }
                       {result.spf.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
                     </div>
                   ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.spf.errors[0] || 'No SPF record found.'}</AlertDescription></Alert>}
                 </div>
               )}
               {(result.lookupType === 'ALL' || result.lookupType === 'DMARC') && (
-                 <div id="dmarc">
+                 <div>
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Mail size={16}/>DMARC</h3>
                   {result.dmarc.record ? (
                      <div className="mt-2 space-y-2">
@@ -92,16 +96,16 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                 </div>
               )}
                {(result.lookupType === 'ALL' || result.lookupType === 'BIMI') && (
-                <div id="bimi">
+                <div>
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={16}/>BIMI</h3>
                   {result.bimi.record ? (
                     <div className="mt-2 space-y-4">
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.bimi.record}</code>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div>
                           <h4 className="font-medium mb-2">Details</h4>
-                          <div className="text-sm space-y-1">
-                            <p><strong>CA:</strong> {result.bimi.certificateAuthority || 'N/A'}</p>
+                          <div className="text-sm space-y-2 border p-3 rounded-md">
+                            <p><strong>CA:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'N/A'}</span></p>
                             <p><strong>Expires:</strong> <ExpiryDate date={result.bimi.certificateExpiry} /></p>
                           </div>
                         </div>
