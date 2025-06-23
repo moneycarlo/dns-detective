@@ -20,52 +20,46 @@ const VALID_DMARC_TAGS = new Set(['v', 'p', 'sp', 'rua', 'ruf', 'fo', 'adkim', '
 
 const checkDmarcReportingAuthorization = async (reportingDomain: string, organizationDomain: string): Promise<boolean> => {
   if (reportingDomain === organizationDomain) {
-    return true; // Same domain is always authorized.
+    return true; 
   }
 
-  // Per RFC 7489 Section 7.1, the record is at the reporting domain, prepended with the original domain.
   const authorizationDomain = `${organizationDomain}._report._dmarc.${reportingDomain}`;
   try {
     const response = await queryDns(authorizationDomain, 'TXT');
     const authRecord = response.Answer?.find(a => a.data.includes(`v=DMARC1`));
-    // The presence of the record is sufficient for authorization.
     return !!authRecord;
   } catch (error) {
     console.error(`Error checking DMARC reporting authorization for ${authorizationDomain}:`, error);
-    return false; // If DNS query fails, we must assume not authorized.
+    return false;
   }
 };
 
 export const parseDMARCRecord = async (record: string, domain: string): Promise<DMARCParseResult> => {
   const result: DMARCParseResult = {
-    policy: 'none',
-    subdomainPolicy: 'none',
-    percentage: 100,
-    adkim: 'r',
-    aspf: 'r',
-    fo: '0',
-    rf: 'afrf',
-    ri: '86400',
-    reportingEmails: [],
-    ruaEmails: [],
-    rufEmails: [],
-    warnings: [],
-    errors: [],
+    policy: 'none', subdomainPolicy: 'none', percentage: 100, adkim: 'r', aspf: 'r', fo: '0',
+    rf: 'afrf', ri: '86400', reportingEmails: [], ruaEmails: [], rufEmails: [], warnings: [], errors: [],
   };
   
   const pairs = record.split(';').map(p => p.trim()).filter(p => p);
+
+  // Check for sp tag on a subdomain
+  if (domain.split('.').length > 2 && record.includes('sp=')) {
+    result.warnings.push("The 'sp' tag is present on a subdomain. It will be ignored by receivers, as 'sp' only applies to subdomains of the top-level domain the policy is published on.");
+  }
 
   for (const pair of pairs) {
     const parts = pair.split('=');
     const tag = parts[0]?.trim();
     const value = parts[1]?.trim();
 
-    if (!tag || !value) continue;
+    if (!tag) continue;
 
     if (!VALID_DMARC_TAGS.has(tag)) {
         result.errors.push(`'${tag}' is not a valid DMARC tag.`);
         continue;
     }
+
+    if (!value) continue;
 
     switch (tag) {
         case 'p': result.policy = value; break;
@@ -87,7 +81,6 @@ export const parseDMARCRecord = async (record: string, domain: string): Promise<
 
   result.reportingEmails = [...new Set([...result.ruaEmails, ...result.rufEmails])];
 
-  // Validate RUA and RUF domain authorizations
   for (const email of result.reportingEmails) {
     const emailParts = email.split('@');
     if (emailParts.length < 2) continue;
