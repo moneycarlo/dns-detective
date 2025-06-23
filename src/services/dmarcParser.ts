@@ -1,5 +1,4 @@
-
-import { queryDnsRecord } from './dnsQuery';
+import { queryDns } from './dnsQuery';
 
 export interface DMARCParseResult {
   policy: string;
@@ -14,96 +13,93 @@ export interface DMARCParseResult {
   ruaEmails: string[];
   rufEmails: string[];
   warnings: string[];
+  errors: string[];
 }
 
-// Check if external domain is authorized to receive DMARC reports
+const VALID_DMARC_TAGS = new Set(['v', 'p', 'sp', 'rua', 'ruf', 'fo', 'adkim', 'aspf', 'rf', 'ri', 'pct']);
+
 const checkDmarcReportingAuthorization = async (reportingDomain: string, organizationDomain: string): Promise<boolean> => {
   if (reportingDomain === organizationDomain) {
-    return true; // Same domain, always authorized
+    return true; // Same domain is always authorized.
   }
-  
-  // Check for authorization record at reportingDomain._report._dmarc.organizationDomain
-  const authorizationDomain = `${reportingDomain}._report._dmarc.${organizationDomain}`;
-  const authRecord = await queryDnsRecord(authorizationDomain, 'TXT');
-  
-  if (authRecord && authRecord.includes('v=DMARC1')) {
-    return true;
+
+  // Per RFC 7489 Section 7.1, the record is at the reporting domain, prepended with the original domain.
+  const authorizationDomain = `${organizationDomain}._report._dmarc.${reportingDomain}`;
+  try {
+    const response = await queryDns(authorizationDomain, 'TXT');
+    const authRecord = response.Answer?.find(a => a.data.includes(`v=DMARC1`));
+    // The presence of the record is sufficient for authorization.
+    return !!authRecord;
+  } catch (error) {
+    console.error(`Error checking DMARC reporting authorization for ${authorizationDomain}:`, error);
+    return false; // If DNS query fails, we must assume not authorized.
   }
-  
-  return false;
 };
 
 export const parseDMARCRecord = async (record: string, domain: string): Promise<DMARCParseResult> => {
-  const pairs = record.split(';').map(pair => pair.trim());
-  let policy = '';
-  let subdomainPolicy = '';
-  let percentage = 100;
-  let adkim = 'r'; // Default to relaxed
-  let aspf = 'r'; // Default to relaxed
-  let fo = '0'; // Default failure reporting option
-  let rf = 'afrf'; // Default report format
-  let ri = '86400'; // Default report interval (24 hours)
-  const reportingEmails: string[] = [];
-  const ruaEmails: string[] = [];
-  const rufEmails: string[] = [];
-  const warnings: string[] = [];
+  const result: DMARCParseResult = {
+    policy: 'none',
+    subdomainPolicy: 'none',
+    percentage: 100,
+    adkim: 'r',
+    aspf: 'r',
+    fo: '0',
+    rf: 'afrf',
+    ri: '86400',
+    reportingEmails: [],
+    ruaEmails: [],
+    rufEmails: [],
+    warnings: [],
+    errors: [],
+  };
   
+  const pairs = record.split(';').map(p => p.trim()).filter(p => p);
+
   for (const pair of pairs) {
-    if (pair.startsWith('p=')) {
-      policy = pair.substring(2);
-    } else if (pair.startsWith('sp=')) {
-      subdomainPolicy = pair.substring(3);
-    } else if (pair.startsWith('pct=')) {
-      percentage = parseInt(pair.substring(4)) || 100;
-    } else if (pair.startsWith('adkim=')) {
-      adkim = pair.substring(6);
-    } else if (pair.startsWith('aspf=')) {
-      aspf = pair.substring(5);
-    } else if (pair.startsWith('fo=')) {
-      fo = pair.substring(3);
-    } else if (pair.startsWith('rf=')) {
-      rf = pair.substring(3);
-    } else if (pair.startsWith('ri=')) {
-      ri = pair.substring(3);
-    } else if (pair.startsWith('rua=')) {
-      const emails = pair.substring(4).split(',').map(email => 
-        email.replace('mailto:', '').trim()
-      );
-      ruaEmails.push(...emails);
-      reportingEmails.push(...emails);
-    } else if (pair.startsWith('ruf=')) {
-      const emails = pair.substring(4).split(',').map(email => 
-        email.replace('mailto:', '').trim()
-      );
-      rufEmails.push(...emails);
-      reportingEmails.push(...emails);
+    const parts = pair.split('=');
+    const tag = parts[0]?.trim();
+    const value = parts[1]?.trim();
+
+    if (!tag || !value) continue;
+
+    if (!VALID_DMARC_TAGS.has(tag)) {
+        result.errors.push(`'${tag}' is not a valid DMARC tag.`);
+        continue;
+    }
+
+    switch (tag) {
+        case 'p': result.policy = value; break;
+        case 'sp': result.subdomainPolicy = value; break;
+        case 'pct': result.percentage = parseInt(value) || 100; break;
+        case 'adkim': result.adkim = value; break;
+        case 'aspf': result.aspf = value; break;
+        case 'fo': result.fo = value; break;
+        case 'rf': result.rf = value; break;
+        case 'ri': result.ri = value; break;
+        case 'rua':
+            result.ruaEmails = value.split(',').map(v => v.replace('mailto:', '').trim());
+            break;
+        case 'ruf':
+            result.rufEmails = value.split(',').map(v => v.replace('mailto:', '').trim());
+            break;
     }
   }
-  
+
+  result.reportingEmails = [...new Set([...result.ruaEmails, ...result.rufEmails])];
+
   // Validate RUA and RUF domain authorizations
-  const allReportingEmails = [...ruaEmails, ...rufEmails];
-  for (const email of allReportingEmails) {
-    const emailDomain = email.split('@')[1];
-    if (emailDomain && emailDomain !== domain) {
-      const isAuthorized = await checkDmarcReportingAuthorization(emailDomain, domain);
+  for (const email of result.reportingEmails) {
+    const emailParts = email.split('@');
+    if (emailParts.length < 2) continue;
+    
+    const reportingDomain = emailParts[1];
+    if (reportingDomain && reportingDomain !== domain) {
+      const isAuthorized = await checkDmarcReportingAuthorization(domain, reportingDomain);
       if (!isAuthorized) {
-        warnings.push(`External domain '${emailDomain}' may not be authorized to receive DMARC reports for '${domain}'. Check for authorization record at ${emailDomain}._report._dmarc.${domain}`);
+        result.warnings.push(`External domain '${reportingDomain}' may not be authorized to receive DMARC reports for '${domain}'.`);
       }
     }
   }
   
-  return {
-    policy,
-    subdomainPolicy,
-    percentage,
-    adkim,
-    aspf,
-    fo,
-    rf,
-    ri,
-    reportingEmails: [...new Set(reportingEmails)], // Remove duplicates
-    ruaEmails,
-    rufEmails,
-    warnings
-  };
+  return result;
 };
