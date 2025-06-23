@@ -19,17 +19,13 @@ export interface DMARCParseResult {
 const VALID_DMARC_TAGS = new Set(['v', 'p', 'sp', 'rua', 'ruf', 'fo', 'adkim', 'aspf', 'rf', 'ri', 'pct']);
 
 const checkDmarcReportingAuthorization = async (reportingDomain: string, organizationDomain: string): Promise<boolean> => {
-  if (reportingDomain === organizationDomain) {
-    return true; 
-  }
-
+  if (reportingDomain === organizationDomain) return true;
   const authorizationDomain = `${organizationDomain}._report._dmarc.${reportingDomain}`;
   try {
     const response = await queryDns(authorizationDomain, 'TXT');
-    const authRecord = response.Answer?.find(a => a.data.includes(`v=DMARC1`));
-    return !!authRecord;
+    return !!response.Answer?.find(a => a.data.includes(`v=DMARC1`));
   } catch (error) {
-    console.error(`Error checking DMARC reporting authorization for ${authorizationDomain}:`, error);
+    console.error(`DMARC auth check failed for ${authorizationDomain}:`, error);
     return false;
   }
 };
@@ -42,23 +38,17 @@ export const parseDMARCRecord = async (record: string, domain: string): Promise<
   
   const pairs = record.split(';').map(p => p.trim()).filter(p => p);
 
-  // Check for sp tag on a subdomain
   if (domain.split('.').length > 2 && record.includes('sp=')) {
-    result.warnings.push("The 'sp' tag is present on a subdomain. It will be ignored by receivers, as 'sp' only applies to subdomains of the top-level domain the policy is published on.");
+    result.warnings.push("The 'sp' tag is present on a subdomain. This tag is only effective on organizational domains, not subdomains, and will be ignored by receivers.");
   }
 
   for (const pair of pairs) {
-    const parts = pair.split('=');
-    const tag = parts[0]?.trim();
-    const value = parts[1]?.trim();
-
+    const [tag, value] = pair.split('=').map(s => s.trim());
     if (!tag) continue;
-
     if (!VALID_DMARC_TAGS.has(tag)) {
-        result.errors.push(`'${tag}' is not a valid DMARC tag.`);
-        continue;
+      result.errors.push(`'${tag}' is not a valid DMARC tag.`);
+      continue;
     }
-
     if (!value) continue;
 
     switch (tag) {
@@ -70,12 +60,8 @@ export const parseDMARCRecord = async (record: string, domain: string): Promise<
         case 'fo': result.fo = value; break;
         case 'rf': result.rf = value; break;
         case 'ri': result.ri = value; break;
-        case 'rua':
-            result.ruaEmails = value.split(',').map(v => v.replace('mailto:', '').trim());
-            break;
-        case 'ruf':
-            result.rufEmails = value.split(',').map(v => v.replace('mailto:', '').trim());
-            break;
+        case 'rua': result.ruaEmails = value.split(',').map(v => v.replace('mailto:', '').trim()); break;
+        case 'ruf': result.rufEmails = value.split(',').map(v => v.replace('mailto:', '').trim()); break;
     }
   }
 
@@ -84,7 +70,6 @@ export const parseDMARCRecord = async (record: string, domain: string): Promise<
   for (const email of result.reportingEmails) {
     const emailParts = email.split('@');
     if (emailParts.length < 2) continue;
-    
     const reportingDomain = emailParts[1];
     if (reportingDomain && reportingDomain !== domain) {
       const isAuthorized = await checkDmarcReportingAuthorization(domain, reportingDomain);
