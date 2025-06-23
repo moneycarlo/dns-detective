@@ -36,6 +36,18 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   );
 };
 
+const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
+  if (!date) return <span className="text-gray-500">N/A</span>;
+  const expiry = new Date(date);
+  const now = new Date();
+  const oneMonthFromNow = new Date();
+  oneMonthFromNow.setMonth(now.getMonth() + 1);
+  let textColor = 'text-green-600';
+  if (expiry < now) textColor = 'text-red-600';
+  else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600';
+  return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
+};
+
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
 
@@ -86,29 +98,51 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.bimi.record}</code>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div>
-                          <h4 className="font-medium mb-2">Certificate</h4>
+                          <h4 className="font-medium mb-2">Certificate Details</h4>
                           {!result.bimi.certificateUrl ? (
-                             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>No certificate (`a=`) tag found. A VMC is required by most providers.</AlertDescription></Alert>
+                             <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>No certificate (`a=`) tag found. A VMC is required by most email providers for the logo to display.</AlertDescription></Alert>
                           ) : (
-                             <p className="text-sm">Certificate found, but expiration and authority cannot be checked.</p>
+                            <div className="text-sm space-y-2 border p-3 rounded-md bg-gray-50">
+                                <p><strong>CA:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'Could not determine'}</span></p>
+                                <p><strong>Expires:</strong> <ExpiryDate date={result.bimi.certificateExpiry} /></p>
+                                <a href={result.bimi.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">View Certificate</a>
+                            </div>
                           )}
                         </div>
                         <div>
                           <h4 className="font-medium mb-2">Email Client Preview</h4>
-                          <div className="p-4 bg-gray-200 rounded-2xl">
-                             <div className="p-1 bg-white rounded-xl shadow-inner">
-                                <div className="flex items-center gap-3 p-3 border-b">
-                                  <div className="w-10 h-10 flex-shrink-0 rounded-full"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div>
-                                  <div className="flex-grow min-w-0">
-                                    <p className="font-bold truncate text-sm">{result.domain}</p>
-                                    <p className="text-xs text-gray-600 truncate">Welcome to our newsletter!</p>
+                          <div className="mx-auto max-w-xs">
+                              <div className="bg-black rounded-[2.5rem] p-2 shadow-2xl">
+                                <div className="bg-black rounded-[2rem] relative overflow-hidden">
+                                  <div className="absolute top-2 left-1/2 transform -translate-x-1/2 w-24 h-6 bg-black rounded-full z-10"></div>
+                                  <div className="bg-white rounded-[1.8rem] overflow-hidden min-h-[10rem]">
+                                    <div className="px-4 py-4">
+                                        <div className="flex items-start gap-3">
+                                        <div className="w-12 h-12 rounded-full bg-white border border-gray-200 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                                            <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-start justify-between mb-1">
+                                            <div className="font-semibold text-gray-900 text-sm truncate">
+                                                {result.domain}
+                                            </div>
+                                            <div className="text-xs text-blue-600 font-medium">
+                                                2:30 PM
+                                            </div>
+                                            </div>
+                                            <div className="text-sm font-medium text-gray-800 truncate mb-1">
+                                            Welcome to our newsletter!
+                                            </div>
+                                            <div className="text-xs text-gray-600 truncate leading-relaxed">
+                                            Thank you for signing up to receive our updates...
+                                            </div>
+                                        </div>
+                                        </div>
+                                    </div>
                                   </div>
                                 </div>
-                                <div className="p-3">
-                                    <p className="text-xs text-gray-500">Hi there, thanks for signing up...</p>
-                                </div>
-                             </div>
-                          </div>
+                              </div>
+                            </div>
                         </div>
                       </div>
                       {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
