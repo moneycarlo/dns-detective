@@ -9,7 +9,10 @@ export const countTotalSPFLookups = async (
   const nestedLookups: { [key: string]: string } = {};
   let totalLookups = 0;
 
-  const queue: { record: string; domain: string; indent: number, parentDetails: LookupDetail[] }[] = [{ record: initialRecord, domain: initialDomain, indent: 0, parentDetails: lookupDetails }];
+  // Use a queue for iterative, breadth-first traversal instead of recursion
+  const queue: { record: string; domain: string; indent: number, parentDetails: LookupDetail[] }[] = 
+    [{ record: initialRecord, domain: initialDomain, indent: 0, parentDetails: lookupDetails }];
+  
   const visited = new Set<string>();
 
   while (queue.length > 0) {
@@ -50,7 +53,7 @@ export const countTotalSPFLookups = async (
         };
         parentDetails.push(currentDetail);
 
-        if (totalLookups > 10) continue;
+        if (totalLookups >= 10) continue; // Stop processing new lookups if limit is reached
 
         if (lookupType === 'include' || lookupType === 'redirect') {
           try {
@@ -60,12 +63,13 @@ export const countTotalSPFLookups = async (
             if (fetchedRecord) {
               currentDetail.record = fetchedRecord;
               nestedLookups[lookupDomain] = fetchedRecord;
+              // Add the nested record to the queue to be processed
               queue.push({ record: fetchedRecord, domain: lookupDomain, indent: indent + 1, parentDetails: currentDetail.nested! });
             } else {
               currentDetail.record = 'No valid SPF record found';
             }
           } catch (error) {
-            currentDetail.record = `Error fetching record: ${error instanceof Error ? error.message : 'Unknown error'}`;
+            currentDetail.record = `Error: ${error instanceof Error ? error.message : 'Unknown'}`;
           }
         }
       }
@@ -80,4 +84,4 @@ export const parseSPFRecord = (record: string) => {
     const includes = mechanisms.filter(p => p.startsWith('include:')).map(p => p.substring(8));
     const redirects = mechanisms.filter(p => p.startsWith('redirect=')).map(p => p.substring(9));
     return { mechanisms, includes, redirects };
-}
+};
