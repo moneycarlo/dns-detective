@@ -27,10 +27,19 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
       if (spfRecord) {
         result.spf.record = spfRecord;
         const lookupData = await countTotalSPFLookups(spfRecord, domain);
-        Object.assign(result.spf, { ...parseSPFRecord(spfRecord), ...lookupData });
-        result.spf.valid = !lookupData.totalLookups > 10;
-        if (lookupData.totalLookups > 10) {
-          result.spf.errors.push(`Exceeds 10 DNS lookup limit.`);
+        const parsedSpf = parseSPFRecord(spfRecord);
+        
+        result.spf.includes = parsedSpf.includes;
+        result.spf.redirects = parsedSpf.redirects;
+        result.spf.mechanisms = parsedSpf.mechanisms;
+        result.spf.lookupCount = lookupData.lookupCount;
+        result.spf.lookupDetails = lookupData.lookupDetails;
+        result.spf.nestedLookups = lookupData.nestedLookups;
+        result.spf.exceedsLookupLimit = lookupData.lookupCount > 10;
+        result.spf.valid = !result.spf.exceedsLookupLimit;
+
+        if (result.spf.exceedsLookupLimit) {
+          result.spf.errors.push(`Exceeds 10 DNS lookup limit (${result.spf.lookupCount})`);
         }
       } else {
         result.spf.errors.push('No SPF record found.');
@@ -40,6 +49,7 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
     }
   }
 
+  // DMARC and BIMI lookups remain unchanged...
   // DMARC Lookup
   if (lookupType === 'ALL' || lookupType === 'DMARC') {
      try {
@@ -65,14 +75,14 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
       const bimiRecord = response.Answer?.find(a => a.data.includes('v=BIMI1'))?.data.replace(/"/g, '');
       if (bimiRecord) {
         result.bimi.record = bimiRecord;
-        const parsed = parseBIMIRecord(bimiRecord);
+        const parsed = await parseBIMIRecord(bimiRecord);
         Object.assign(result.bimi, parsed);
         result.bimi.valid = parsed.errors.length === 0;
       } else {
         result.bimi.errors.push('No BIMI record found.');
       }
     } catch (e) {
-      result.bimi.errors.push(e instanceof Error ? e.message : 'Failed to query/parse BIMI record.');
+       result.bimi.errors.push(e instanceof Error ? e.message : 'Failed to query/parse BIMI record.');
     }
   }
 
