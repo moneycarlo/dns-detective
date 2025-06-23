@@ -5,14 +5,13 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DomainResult, LookupDetail, LookupType } from '@/types/domain';
 import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
-// A safe component to render the BIMI logo
 const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUrl, domain }) => {
   const [hasError, setHasError] = useState(false);
   useEffect(() => { setHasError(false); }, [logoUrl]);
 
   if (!logoUrl || hasError) {
     return (
-      <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">
+      <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-lg">
         {domain.charAt(0).toUpperCase()}
       </div>
     );
@@ -20,7 +19,6 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
   return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain" onError={() => setHasError(true)} />;
 };
 
-// A recursive component to display nested SPF lookups
 const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   if (!details?.length) return null;
   return (
@@ -30,7 +28,7 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
           <div className="text-sm">
             <span className="font-mono text-gray-500">{detail.number}.</span> {detail.type}: <span className="font-medium">{detail.domain}</span>
           </div>
-          {detail.record && <code className="block bg-gray-50 p-1.5 rounded-md text-xs mt-1 ml-4">{detail.record}</code>}
+          {detail.record && <code className="block bg-gray-50 p-1.5 rounded-md text-xs mt-1 ml-4 break-all">{detail.record}</code>}
           {detail.nested && detail.nested.length > 0 && <div className="mt-1"><LookupDetails details={detail.nested} /></div>}
         </div>
       ))}
@@ -38,7 +36,6 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   );
 };
 
-// A component to format and color-code the expiration date
 const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
   if (!date) return <span className="text-gray-500">Not Available</span>;
   try {
@@ -76,11 +73,11 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
           {result.status !== 'pending' && (
             <CardContent className="space-y-6">
               {(result.lookupType === 'ALL' || result.lookupType === 'SPF') && (
-                <div id="spf">
+                <div>
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Shield size={16}/>SPF</h3>
                   {result.spf.record ? (
                     <div className="mt-2 space-y-2">
-                      <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.spf.record}</code>
+                      <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.spf.record}</code>
                       <p className="text-sm font-medium">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></p>
                       {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && <LookupDetails details={result.spf.lookupDetails} />}
                       {result.spf.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
@@ -93,7 +90,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Mail size={16}/>DMARC</h3>
                   {result.dmarc.record ? (
                      <div className="mt-2 space-y-2">
-                      <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.dmarc.record}</code>
+                      <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.dmarc.record}</code>
                       {result.dmarc.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
                       {result.dmarc.warnings.map((w,i) => <Alert key={i} variant="default" className="mt-2 bg-yellow-50 border-yellow-200 text-yellow-800"><AlertTriangle className="h-4 w-4" /><AlertDescription>{w}</AlertDescription></Alert>)}
                     </div>
@@ -105,7 +102,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={16}/>BIMI</h3>
                   {result.bimi.record ? (
                     <div className="mt-2 space-y-4">
-                      <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.bimi.record}</code>
+                      <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.bimi.record}</code>
                       {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
