@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DomainInput } from '@/components/DomainInput';
@@ -8,9 +7,9 @@ import { Legend } from '@/components/Legend';
 import { Header } from '@/components/Header';
 import { useDnsLookup } from '@/hooks/useDnsLookup';
 import { FileText } from 'lucide-react';
+import { LookupType } from '@/types/domain';
 
 const Index = () => {
-  const [domains, setDomains] = useState<string[]>([]);
   const { results, isLoading, handleLookup } = useDnsLookup();
 
   return (
@@ -18,27 +17,20 @@ const Index = () => {
       <div className="max-w-7xl mx-auto space-y-8">
         <Header />
 
-        {/* Domain Input Section - Now at the top */}
         <Card>
           <CardHeader>
             <CardTitle className="text-center">DNS Detective</CardTitle>
             <CardDescription className="text-center">
-              Enter up to 10 domains to analyze their DNS records (SPF, DMARC, BIMI)
+              Enter domains to analyze their DNS records. Choose a specific record type or run a full analysis.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <DomainInput
-                  domains={domains}
-                  onDomainsChange={setDomains}
-                  onLookup={handleLookup}
-                  isLoading={isLoading}
-                />
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              <div className="lg:col-span-1">
+                <DomainInput onLookup={handleLookup} isLoading={isLoading} />
               </div>
               
-              {results.length > 0 && (
-                <div className="flex flex-col justify-center">
+              <div className="lg:col-span-1 flex flex-col justify-center">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
@@ -51,12 +43,10 @@ const Index = () => {
                     </CardContent>
                   </Card>
                 </div>
-              )}
             </div>
           </CardContent>
         </Card>
 
-        {/* Results Section */}
         <div className="space-y-6">
           {results.length > 0 && (
             <DnsResults results={results} />
