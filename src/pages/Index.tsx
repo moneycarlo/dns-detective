@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DomainInput } from '@/components/DomainInput';
 import { DnsResults } from '@/components/DnsResults';
@@ -21,7 +21,7 @@ const Index = () => {
           <CardHeader>
             <CardTitle className="text-center">DNS Detective</CardTitle>
             <CardDescription className="text-center">
-              Enter domains to analyze their DNS records. Choose a specific record type or run a full analysis.
+              Enter up to 10 domains to analyze their DNS records (SPF, DMARC, BIMI)
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -30,7 +30,8 @@ const Index = () => {
                 <DomainInput onLookup={handleLookup} isLoading={isLoading} />
               </div>
               
-              <div className="lg:col-span-1 flex flex-col justify-center">
+              {results.length > 0 && (
+                <div className="lg:col-span-1 flex flex-col justify-center">
                   <Card>
                     <CardHeader>
                       <CardTitle className="flex items-center gap-2 text-lg">
@@ -43,6 +44,7 @@ const Index = () => {
                     </CardContent>
                   </Card>
                 </div>
+              )}
             </div>
           </CardContent>
         </Card>
