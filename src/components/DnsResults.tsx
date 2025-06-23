@@ -18,7 +18,8 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
       </div>
     );
   }
-  return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain" onError={() => setHasError(true)} />;
+  // Added rounded-full to the img tag
+  return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain rounded-full" onError={() => setHasError(true)} />;
 };
 
 // A recursive component to display nested SPF lookups
@@ -139,7 +140,9 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                         <ul className="divide-y divide-gray-200">
                             {/* BIMI Email */}
                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} /></div>
+                                <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md overflow-hidden">
+                                  <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
+                                </div>
                                 <div className="flex-1 min-w-0">
                                     <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
                                     <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now! *</p>
