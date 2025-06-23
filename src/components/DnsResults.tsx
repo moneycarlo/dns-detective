@@ -5,13 +5,14 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DomainResult, LookupDetail, LookupType } from '@/types/domain';
 import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
+// A safe component to render the BIMI logo
 const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUrl, domain }) => {
   const [hasError, setHasError] = useState(false);
   useEffect(() => { setHasError(false); }, [logoUrl]);
 
   if (!logoUrl || hasError) {
     return (
-      <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold text-lg">
+      <div className="w-full h-full bg-gray-100 rounded-full flex items-center justify-center text-gray-500 font-bold">
         {domain.charAt(0).toUpperCase()}
       </div>
     );
@@ -19,6 +20,7 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
   return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain" onError={() => setHasError(true)} />;
 };
 
+// A recursive component to display nested SPF lookups
 const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   if (!details?.length) return null;
   return (
@@ -36,17 +38,25 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
   );
 };
 
+// A component to format and color-code the expiration date
 const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
-  if (!date) return <span className="text-gray-500">N/A</span>;
-  const expiry = new Date(date);
-  const now = new Date();
-  const oneMonthFromNow = new Date();
-  oneMonthFromNow.setMonth(now.getMonth() + 1);
-  let textColor = 'text-green-600';
-  if (expiry < now) textColor = 'text-red-600';
-  else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600';
-  return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
+  if (!date) return <span className="text-gray-500">Not Available</span>;
+  try {
+    const expiry = new Date(date);
+    const now = new Date();
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setMonth(now.getMonth() + 1);
+
+    let textColor = 'text-green-600 font-medium';
+    if (expiry < now) textColor = 'text-red-600 font-medium';
+    else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600 font-medium';
+    
+    return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
+  } catch(e) {
+    return <span className="text-gray-500">Invalid Date</span>
+  }
 };
+
 
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
@@ -66,7 +76,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
           {result.status !== 'pending' && (
             <CardContent className="space-y-6">
               {(result.lookupType === 'ALL' || result.lookupType === 'SPF') && (
-                <div>
+                <div id="spf">
                   <h3 className="font-semibold text-lg flex items-center gap-2"><Shield size={16}/>SPF</h3>
                   {result.spf.record ? (
                     <div className="mt-2 space-y-2">
@@ -96,6 +106,8 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                   {result.bimi.record ? (
                     <div className="mt-2 space-y-4">
                       <code className="block bg-gray-100 p-2 rounded-md text-sm">{result.bimi.record}</code>
+                      {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
+                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
                         <div>
                           <h4 className="font-medium mb-2">Certificate Details</h4>
@@ -109,6 +121,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                             </div>
                           )}
                         </div>
+                        
                         <div>
                           <h4 className="font-medium mb-2">Email Client Preview</h4>
                           <div className="mx-auto max-w-xs">
@@ -145,7 +158,6 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
                             </div>
                         </div>
                       </div>
-                      {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
                     </div>
                   ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.bimi.errors[0] || 'No BIMI record found.'}</AlertDescription></Alert>}
                 </div>
