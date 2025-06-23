@@ -1,47 +1,32 @@
-
 import { useState } from 'react';
-import { DomainResult } from '@/types/domain';
+import { DomainResult, LookupType } from '@/types/domain';
 import { performDnsLookup, performActualDnsLookup } from '@/services/dnsLookupService';
 
 export const useDnsLookup = () => {
   const [results, setResults] = useState<DomainResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleLookup = async (domainList: string[]) => {
+  const handleLookup = async (domainList: string[], lookupType: LookupType) => {
     setIsLoading(true);
     
-    const initialResults = await performDnsLookup(domainList);
-    setResults(initialResults);
+    const newLookups = await performDnsLookup(domainList, lookupType);
+    setResults(prev => [...newLookups, ...prev]);
 
-    // Perform actual DNS lookups
-    for (let i = 0; i < domainList.length; i++) {
-      const domain = domainList[i];
-      
+    for (const lookup of newLookups) {
       try {
-        console.log(`🔍 Looking up DNS records for: ${domain}`);
-        const actualResult = await performActualDnsLookup(domain);
-        
+        const actualResult = await performActualDnsLookup(lookup.domain, lookupType);
         setResults(prev => 
-          prev.map((result, index) => 
-            index === i ? actualResult : result
-          )
+          prev.map(r => (r.id === lookup.id ? { ...actualResult, id: lookup.id, lookupType } : r))
         );
       } catch (error) {
-        console.error(`❌ DNS lookup failed for ${domain}:`, error);
+        console.error(`❌ DNS lookup failed for ${lookup.domain}:`, error);
         setResults(prev => 
-          prev.map((result, index) => 
-            index === i ? { ...result, status: 'error' as const } : result
-          )
+          prev.map(r => (r.id === lookup.id ? { ...r, status: 'error' } : r))
         );
       }
     }
-    
     setIsLoading(false);
   };
 
-  return {
-    results,
-    isLoading,
-    handleLookup
-  };
+  return { results, isLoading, handleLookup };
 };
