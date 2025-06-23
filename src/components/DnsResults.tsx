@@ -4,7 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DomainResult, LookupDetail, LookupType } from '@/types/domain';
-import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink, Menu, Search } from 'lucide-react';
+import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 
 // A safe component to render the BIMI logo
 const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUrl, domain }) => {
@@ -18,8 +18,7 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
       </div>
     );
   }
-  // Added rounded-full to the img tag
-  return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain rounded-full" onError={() => setHasError(true)} />;
+  return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain" onError={() => setHasError(true)} />;
 };
 
 // A recursive component to display nested SPF lookups
@@ -39,26 +38,6 @@ const LookupDetails: React.FC<{ details: LookupDetail[] }> = ({ details }) => {
     </div>
   );
 };
-  
-// A component to format and color-code the expiration date
-const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
-  if (!date) return <span className="text-gray-500">Not Available</span>;
-  try {
-    const expiry = new Date(date);
-    const now = new Date();
-    const oneMonthFromNow = new Date();
-    oneMonthFromNow.setMonth(now.getMonth() + 1);
-
-    let textColor = 'text-green-600 font-medium';
-    if (expiry < now) textColor = 'text-red-600 font-medium';
-    else if (expiry < oneMonthFromNow) textColor = 'text-yellow-600 font-medium';
-    
-    return <span className={textColor}>{expiry.toLocaleDateString()}</span>;
-  } catch(e) {
-    return <span className="text-gray-500">Invalid Date</span>
-  }
-};
-
 
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
@@ -110,77 +89,64 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
 
   const renderBIMI = (result: DomainResult) => (
     <div>
-        <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={16}/>BIMI</h3>
-        {result.bimi.record ? (
+      <h3 className="font-semibold text-lg flex items-center gap-2"><Image size={16}/>BIMI</h3>
+      {result.bimi.record ? (
         <div className="mt-2 space-y-4">
-            <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.bimi.record}</code>
-            {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <div>
-                <h4 className="font-medium mb-2">Certificate Details</h4>
-                {!result.bimi.certificateUrl ? (
-                    <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>No certificate (`a=`) tag found. A VMC is required by most email providers.</AlertDescription></Alert>
-                ) : (
-                <div className="text-sm space-y-2 border p-3 rounded-md bg-gray-50">
-                    <p><strong>CA:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'Could not determine'}</span></p>
-                    <p><strong>Expires:</strong> <ExpiryDate date={result.bimi.certificateExpiry} /></p>
-                    <a href={result.bimi.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">View Certificate</a>
-                </div>
-                )}
-            </div>
-            <div>
-                <h4 className="font-medium mb-2">Email Client Preview</h4>
-                <div className="w-full max-w-sm mx-auto bg-gray-800 rounded-[2.5rem] p-3 shadow-2xl">
-                    <div className="w-full bg-white rounded-[2rem] overflow-hidden">
-                        <div className="px-4 py-3 bg-blue-600 text-white flex justify-between items-center">
-                            <Menu className="h-6 w-6" />
-                            <h2 className="text-lg font-semibold">Inbox</h2>
-                            <Search className="h-6 w-6" />
-                        </div>
-                        <ul className="divide-y divide-gray-200">
-                            {/* BIMI Email */}
-                            <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md overflow-hidden">
-                                  <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
-                                    <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now!</p>
-                                    <p className="text-sm text-gray-500 truncate">Welcome to the world of BIMI</p>
-                                </div>
-                            </li>
-                            {/* Static Examples */}
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">A</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Amanda Kelly</p>
-                                    <p className="text-sm text-gray-800 truncate">Meeting Updates</p>
-                                    <p className="text-sm text-gray-500 truncate">Hey, I hope you had a nice weeke...</p>
-                                </div>
-                            </li>
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">R</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Rideshare Receipts</p>
-                                    <p className="text-sm text-gray-800 truncate">Monday 23rd June 10:04 ride.</p>
-                                    <p className="text-sm text-gray-500 truncate">Thank you for riding with us...</p>
-                                </div>
-                            </li>
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">G</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Your Credit Union</p>
-                                    <p className="text-sm text-gray-800 truncate">Your online statement is available</p>
-                                    <p className="text-sm text-gray-500 truncate">Dear Member, Your online stat...</p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-            </div>
+          <div className="p-4 border rounded-lg">
+              <h4 className="font-semibold text-base mb-4">VMC Certificate</h4>
+              <div className="flex items-center gap-2 text-sm flex-wrap">
+                  <CheckCircle className="h-5 w-5 text-green-500"/>
+                  <Badge variant="outline" className="text-blue-600 border-blue-600">VMC</Badge>
+                  <span>certificate from</span>
+                  <Badge variant="outline">A-TAG</Badge>
+                  {result.bimi.certificateUrl ? (
+                      <a href={result.bimi.certificateUrl} target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:underline font-mono text-xs'>pem-url</a>
+                  ) : (
+                      <span className='font-mono text-xs'>pem-url</span>
+                  )}
+                  <span>is valid</span>
+              </div>
+              
+              {/* Light Background Preview */}
+              <div className="my-4 p-4 rounded-lg bg-white border">
+                  <div className="flex justify-around items-center text-center">
+                      {[
+                          {size: "1:1", dim: "56px"}, 
+                          {size: "80x80", dim: "48px"},
+                          {size: "60x60", dim: "40px"},
+                          {size: "40x40", dim: "32px"},
+                      ].map(s => (
+                          <div key={s.size}>
+                              <div className="mx-auto bg-gray-100 rounded-md flex items-center justify-center" style={{width: s.dim, height: s.dim}}>
+                                  <div className="w-3/4 h-3/4"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain}/></div>
+                              </div>
+                              <p className="text-xs mt-1 text-gray-600">{s.size}</p>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+
+              {/* Dark Background Preview */}
+              <div className="my-4 p-4 rounded-lg bg-gray-800 text-white">
+                   <div className="flex justify-around items-center text-center">
+                      {[
+                          {size: "1:1", dim: "56px"}, 
+                          {size: "80x80", dim: "48px"},
+                          {size: "60x60", dim: "40px"},
+                          {size: "40x40", dim: "32px"},
+                      ].map(s => (
+                          <div key={s.size}>
+                              <div className="mx-auto bg-gray-700 rounded-full flex items-center justify-center" style={{width: s.dim, height: s.dim}}>
+                                  <div className="w-3/4 h-3/4"><BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain}/></div>
+                              </div>
+                              <p className="text-xs mt-1 text-gray-300">{s.size}</p>
+                          </div>
+                      ))}
+                  </div>
+              </div>
+          </div>
         </div>
-        ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.bimi.errors[0] || 'No BIMI record found.'}</AlertDescription></Alert>}
+      ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.bimi.errors[0] || 'No BIMI record found.'}</AlertDescription></Alert>}
     </div>
   );
 
