@@ -133,7 +133,7 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
         {result.spf.record ? (
             <div className="mt-2 space-y-2">
             <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.spf.record}</code>
-            <p className="text-sm font-medium">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></p>
+            <div className="text-sm font-medium">DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge></div>
             {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && <LookupDetails details={result.spf.lookupDetails} />}
             {result.spf.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
             </div>
