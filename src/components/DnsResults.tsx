@@ -6,10 +6,41 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DomainResult, LookupDetail, LookupType } from '@/types/domain';
 import { Shield, Mail, Image, AlertTriangle, CheckCircle, Clock, ExternalLink, Menu, Search } from 'lucide-react';
 
-// A safe component to render the BIMI logo
+// Enhanced component to display certificate dates
+const CertificateDate: React.FC<{ date: string | null; label: string }> = ({ date, label }) => {
+  if (!date) return <span className="text-gray-500">Not Available</span>;
+  try {
+    const certDate = new Date(date);
+    const now = new Date();
+    const oneMonthFromNow = new Date();
+    oneMonthFromNow.setMonth(now.getMonth() + 1);
+
+    let textColor = 'text-green-600 font-medium';
+    if (label === 'Expires' && certDate < now) textColor = 'text-red-600 font-medium';
+    else if (label === 'Expires' && certDate < oneMonthFromNow) textColor = 'text-yellow-600 font-medium';
+    else if (label === 'Issued') textColor = 'text-blue-600 font-medium';
+    
+    return <span className={textColor}>{certDate.toLocaleDateString()}</span>;
+  } catch(e) {
+    return <span className="text-gray-500">Invalid Date</span>;
+  }
+};
+
+// Enhanced BIMI logo component with SVG preview
 const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUrl, domain }) => {
   const [hasError, setHasError] = useState(false);
-  useEffect(() => { setHasError(false); }, [logoUrl]);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  useEffect(() => { 
+    setHasError(false); 
+    setIsLoading(!!logoUrl);
+  }, [logoUrl]);
+
+  const handleLoad = () => setIsLoading(false);
+  const handleError = () => {
+    setHasError(true);
+    setIsLoading(false);
+  };
 
   if (!logoUrl || hasError) {
     return (
@@ -18,7 +49,24 @@ const BimiLogo: React.FC<{ logoUrl: string | null; domain: string }> = ({ logoUr
       </div>
     );
   }
-  return <img src={logoUrl} alt={`${domain} BIMI logo`} className="w-full h-full object-contain rounded-full" onError={() => setHasError(true)} />;
+
+  return (
+    <div className="w-full h-full relative">
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-100 rounded-full flex items-center justify-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600" />
+        </div>
+      )}
+      <img 
+        src={logoUrl} 
+        alt={`${domain} BIMI logo`} 
+        className="w-full h-full object-contain rounded-full" 
+        onLoad={handleLoad}
+        onError={handleError}
+        style={{ display: isLoading ? 'none' : 'block' }}
+      />
+    </div>
+  );
 };
 
 // A recursive component to display nested SPF lookups
@@ -57,7 +105,6 @@ const ExpiryDate: React.FC<{ date: string | null }> = ({ date }) => {
     return <span className="text-gray-500">Invalid Date</span>
   }
 };
-
 
 export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) => {
   if (results.length === 0) return null;
@@ -114,69 +161,104 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
         <div className="mt-2 space-y-4">
             <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.bimi.record}</code>
             {result.bimi.errors.map((e,i) => <Alert key={i} variant="destructive" className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{e}</AlertDescription></Alert>)}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-            <div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+              {/* Logo Preview Section */}
+              <div>
+                <h4 className="font-medium mb-2">Logo Preview</h4>
+                {result.bimi.logoUrl ? (
+                  <div className="space-y-3">
+                    <div className="w-24 h-24 mx-auto border-2 border-gray-200 rounded-full overflow-hidden shadow-md">
+                      <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
+                    </div>
+                    <div className="text-center">
+                      <a 
+                        href={result.bimi.logoUrl} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="inline-flex items-center gap-1 text-blue-600 text-sm hover:underline"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View Full SVG
+                      </a>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 mx-auto bg-gray-100 rounded-full flex items-center justify-center text-gray-500">
+                    <Image className="h-8 w-8" />
+                  </div>
+                )}
+              </div>
+
+              {/* Certificate Details Section */}
+              <div>
                 <h4 className="font-medium mb-2">Certificate Details</h4>
                 {!result.bimi.certificateUrl ? (
                     <Alert variant="destructive"><AlertTriangle className="h-4 w-4" /><AlertDescription>No certificate (`a=`) tag found. A VMC is required by most email providers.</AlertDescription></Alert>
                 ) : (
                 <div className="text-sm space-y-2 border p-3 rounded-md bg-gray-50">
-                    <p><strong>CA:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'Could not determine'}</span></p>
-                    <p><strong>Expires:</strong> <ExpiryDate date={result.bimi.certificateExpiry} /></p>
-                    <a href={result.bimi.certificateUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 text-xs hover:underline">View Certificate</a>
+                    <p><strong>Authority:</strong> <span className="font-mono text-xs">{result.bimi.certificateAuthority || 'Could not determine'}</span></p>
+                    <p><strong>Issuer:</strong> <span className="font-mono text-xs">{result.bimi.certificateIssuer || 'Could not determine'}</span></p>
+                    <p><strong>Issued:</strong> <CertificateDate date={result.bimi.certificateIssueDate} label="Issued" /></p>
+                    <p><strong>Expires:</strong> <CertificateDate date={result.bimi.certificateExpiry} label="Expires" /></p>
+                    <a href={result.bimi.certificateUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 text-xs hover:underline">
+                      <ExternalLink className="h-3 w-3" />
+                      View Certificate
+                    </a>
                 </div>
                 )}
+              </div>
             </div>
+
             <div>
-                <h4 className="font-medium mb-2">Email Client Preview</h4>
-                <div className="w-full max-w-sm mx-auto bg-gray-800 rounded-[2.5rem] p-3 shadow-2xl">
-                    <div className="w-full bg-white rounded-[2rem] overflow-hidden">
-                        <div className="px-4 py-3 bg-blue-600 text-white flex justify-between items-center">
-                            <Menu className="h-6 w-6" />
-                            <h2 className="text-lg font-semibold">Inbox</h2>
-                            <Search className="h-6 w-6" />
-                        </div>
-                        <ul className="divide-y divide-gray-200">
-                            {/* BIMI Email */}
-                            <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md overflow-hidden">
-                                  <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
-                                    <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now! *</p>
-                                    <p className="text-sm text-gray-500 truncate">Welcome to the world of BIMI</p>
-                                </div>
-                            </li>
-                            {/* Static Examples */}
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">A</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Andrew Baker</p>
-                                    <p className="text-sm text-gray-800 truncate">Proposal Updates</p>
-                                    <p className="text-sm text-gray-500 truncate">Hey, I hope you had a nice weeke...</p>
-                                </div>
-                            </li>
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">T</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">Taxi Receipts</p>
-                                    <p className="text-sm text-gray-800 truncate">Wednesday 24th May 11:15 ride.</p>
-                                    <p className="text-sm text-gray-500 truncate">Thank you for choosing Taxi servi...</p>
-                                </div>
-                            </li>
-                             <li className="p-3 flex items-center space-x-4">
-                                <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">G</div>
-                                <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-bold text-gray-900 truncate">General Bank</p>
-                                    <p className="text-sm text-gray-800 truncate">Online statement now available</p>
-                                    <p className="text-sm text-gray-500 truncate">Dear customer, Your online bank...</p>
-                                </div>
-                            </li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+              <h4 className="font-medium mb-2">Email Client Preview</h4>
+              <div className="w-full max-w-sm mx-auto bg-gray-800 rounded-[2.5rem] p-3 shadow-2xl">
+                  <div className="w-full bg-white rounded-[2rem] overflow-hidden">
+                      <div className="px-4 py-3 bg-blue-600 text-white flex justify-between items-center">
+                          <Menu className="h-6 w-6" />
+                          <h2 className="text-lg font-semibold">Inbox</h2>
+                          <Search className="h-6 w-6" />
+                      </div>
+                      <ul className="divide-y divide-gray-200">
+                          {/* BIMI Email */}
+                          <li className="p-3 flex items-center space-x-4">
+                              <div className="w-10 h-10 flex-shrink-0 rounded-full shadow-md overflow-hidden">
+                                <BimiLogo logoUrl={result.bimi.logoUrl} domain={result.domain} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900 truncate">{result.domain}</p>
+                                  <p className="text-sm font-medium text-gray-800 truncate">Getting BIMI for your brand now! *</p>
+                                  <p className="text-sm text-gray-500 truncate">Welcome to the world of BIMI</p>
+                              </div>
+                          </li>
+                          {/* Static Examples */}
+                           <li className="p-3 flex items-center space-x-4">
+                              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">A</div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900 truncate">Andrew Baker</p>
+                                  <p className="text-sm text-gray-800 truncate">Proposal Updates</p>
+                                  <p className="text-sm text-gray-500 truncate">Hey, I hope you had a nice weeke...</p>
+                              </div>
+                          </li>
+                           <li className="p-3 flex items-center space-x-4">
+                              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">T</div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900 truncate">Taxi Receipts</p>
+                                  <p className="text-sm text-gray-800 truncate">Wednesday 24th May 11:15 ride.</p>
+                                  <p className="text-sm text-gray-500 truncate">Thank you for choosing Taxi servi...</p>
+                              </div>
+                          </li>
+                           <li className="p-3 flex items-center space-x-4">
+                              <div className="w-10 h-10 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center text-gray-500 font-bold">G</div>
+                              <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-bold text-gray-900 truncate">General Bank</p>
+                                  <p className="text-sm text-gray-800 truncate">Online statement now available</p>
+                                  <p className="text-sm text-gray-500 truncate">Dear customer, Your online bank...</p>
+                              </div>
+                          </li>
+                      </ul>
+                  </div>
+              </div>
             </div>
         </div>
         ) : <Alert className="mt-2"><AlertTriangle className="h-4 w-4" /><AlertDescription>{result.bimi.errors[0] || 'No BIMI record found.'}</AlertDescription></Alert>}

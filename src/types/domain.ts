@@ -1,3 +1,4 @@
+
 export type LookupType = 'ALL' | 'SPF' | 'DMARC' | 'BIMI';
 
 export interface LookupDetail {
@@ -10,8 +11,8 @@ export interface LookupDetail {
 }
 
 export interface DomainResult {
-  id: string; // For unique tracking
-  lookupType: LookupType; // To know which lookup was run
+  id: string;
+  lookupType: LookupType;
   domain: string;
   spf: {
     record: string | null;
@@ -48,7 +49,9 @@ export interface DomainResult {
     logoUrl: string | null;
     certificateUrl: string | null;
     certificateExpiry: string | null;
-    certificateAuthority: string | null; // Added
+    certificateIssueDate: string | null;
+    certificateAuthority: string | null;
+    certificateIssuer: string | null;
     errors: string[];
   };
   websiteLogo: string | null;

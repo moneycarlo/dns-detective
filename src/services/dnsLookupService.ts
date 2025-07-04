@@ -9,7 +9,7 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
     id: crypto.randomUUID(), lookupType, domain, status: 'completed',
     spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, exceedsLookupLimit: false, lookupDetails: [] },
     dmarc: { record: null, valid: false, policy: '', subdomainPolicy: '', percentage: 100, adkim: 'r', aspf: 'r', fo: '0', rf: 'afrf', ri: '86400', reportingEmails: [], ruaEmails: [], rufEmails: [], errors: [], warnings: [] },
-    bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateAuthority: null, errors: [] },
+    bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateIssueDate: null, certificateAuthority: null, certificateIssuer: null, errors: [] },
     websiteLogo: `https://logo.clearbit.com/${domain}`,
   };
 
@@ -62,7 +62,7 @@ export const performDnsLookup = async (domainList: string[], lookupType: LookupT
     id: crypto.randomUUID(), lookupType, domain, status: 'pending',
     spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, exceedsLookupLimit: false, lookupDetails: [] },
     dmarc: { record: null, valid: false, policy: '', subdomainPolicy: '', percentage: 100, adkim: 'r', aspf: 'r', fo: '0', rf: 'afrf', ri: '86400', reportingEmails: [], ruaEmails: [], rufEmails: [], errors: [], warnings: [] },
-    bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateAuthority: null, errors: [] },
+    bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateIssueDate: null, certificateAuthority: null, certificateIssuer: null, errors: [] },
     websiteLogo: null,
   }));
 };
