@@ -1,5 +1,5 @@
 
-import { DomainResult } from '@/types/domain';
+import { DomainResult, LookupDetail } from '@/types/domain';
 
 export const generateMockResult = (domain: string): DomainResult => {
   // Create a simple hash from domain name for consistent results
@@ -33,6 +33,7 @@ export const generateMockResult = (domain: string): DomainResult => {
   let exceedsLimit = false;
   let spfErrors: string[] = [];
   let nestedLookups: { [key: string]: string } = {};
+  let lookupDetails: LookupDetail[] = [];
   
   if (hasSpf) {
     // Generate realistic nested lookups based on domain type
@@ -40,6 +41,16 @@ export const generateMockResult = (domain: string): DomainResult => {
     
     // Calculate lookup count: 1 for main record + number of includes + nested lookups
     let totalLookups = 1; // Main SPF record
+    
+    // Generate mock lookup details
+    lookupDetails = includes.map((include, index) => ({
+      number: index + 1,
+      type: 'include' as const,
+      domain: include,
+      record: `v=spf1 include:${include} ~all`,
+      nested: [],
+      indent: 0
+    }));
     
     includes.forEach(include => {
       // Each include adds 1 lookup
@@ -77,6 +88,8 @@ export const generateMockResult = (domain: string): DomainResult => {
   const bimiLogoUrl = bimiLogos[domain.toLowerCase()] || (hasBimi ? `https://${domain}/logo.svg` : null);
   
   return {
+    id: crypto.randomUUID(),
+    lookupType: 'ALL',
     domain,
     spf: {
       record: hasSpf ? `v=spf1 include:_spf.google.com include:spf.protection.outlook.com include:_spf.salesforce.com ~all` : null,
@@ -87,7 +100,8 @@ export const generateMockResult = (domain: string): DomainResult => {
       errors: spfErrors,
       nestedLookups: nestedLookups,
       lookupCount: spfLookupCount,
-      exceedsLookupLimit: exceedsLimit
+      exceedsLookupLimit: exceedsLimit,
+      lookupDetails: lookupDetails
     },
     dmarc: {
       record: hasDmarc ? `v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain}; ruf=mailto:dmarc@${domain}; pct=100` : null,
@@ -111,7 +125,10 @@ export const generateMockResult = (domain: string): DomainResult => {
       valid: hasBimi,
       logoUrl: bimiLogoUrl,
       certificateUrl: hasBimi ? `https://${domain}/cert.pem` : null,
-      certificateExpiry: hasBimi ? '2025-12-31' : null,
+      certificateExpiry: hasBimi ? '2025-12-31T23:59:59Z' : null,
+      certificateIssueDate: hasBimi ? '2024-01-01T00:00:00Z' : null,
+      certificateAuthority: hasBimi ? 'DigiCert Inc' : null,
+      certificateIssuer: hasBimi ? `${domain} Certificate Authority` : null,
       errors: hasBimi ? [] : ['No BIMI record found']
     },
     websiteLogo: `https://logo.clearbit.com/${domain}`,
