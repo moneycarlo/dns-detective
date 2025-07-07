@@ -11,7 +11,47 @@ export interface BIMIParseResult {
   errors: string[];
 }
 
-// Simple helper to extract certificate details from PEM text
+// Helper to parse ASN.1 DER encoded dates from certificate
+const parseASN1Date = (bytes: Uint8Array, offset: number): { date: string | null, newOffset: number } => {
+  try {
+    const tag = bytes[offset];
+    const length = bytes[offset + 1];
+    
+    if ((tag === 0x17 && length === 13) || (tag === 0x18 && length === 15)) { // UTCTime or GeneralizedTime
+      const dateBytes = bytes.slice(offset + 2, offset + 2 + length);
+      const dateString = String.fromCharCode(...dateBytes);
+      
+      let year, month, day, hour, min, sec;
+      
+      if (tag === 0x17) { // UTCTime (YYMMDDHHMMSSZ)
+        year = parseInt(dateString.substr(0, 2));
+        year = year < 50 ? 2000 + year : 1900 + year;
+        month = dateString.substr(2, 2);
+        day = dateString.substr(4, 2);
+        hour = dateString.substr(6, 2);
+        min = dateString.substr(8, 2);
+        sec = dateString.substr(10, 2);
+      } else { // GeneralizedTime (YYYYMMDDHHMMSSZ)
+        year = parseInt(dateString.substr(0, 4));
+        month = dateString.substr(4, 2);
+        day = dateString.substr(6, 2);
+        hour = dateString.substr(8, 2);
+        min = dateString.substr(10, 2);
+        sec = dateString.substr(12, 2);
+      }
+      
+      const isoDate = `${year}-${month}-${day}T${hour}:${min}:${sec}Z`;
+      return { date: isoDate, newOffset: offset + 2 + length };
+    }
+    
+    return { date: null, newOffset: offset + 1 };
+  } catch (e) {
+    console.log("Error parsing ASN.1 date:", e);
+    return { date: null, newOffset: offset + 1 };
+  }
+};
+
+// Extract certificate details from PEM text
 const getCertDetailsFromPem = (pemText: string): { 
   authority: string | null; 
   expiry: string | null; 
@@ -21,7 +61,7 @@ const getCertDetailsFromPem = (pemText: string): {
   try {
     console.log("Parsing certificate, PEM text length:", pemText.length);
     
-    // Look for authority/issuer info in the certificate text
+    // Extract authority/issuer from text patterns
     let authority = null;
     let issuer = null;
     
@@ -38,15 +78,13 @@ const getCertDetailsFromPem = (pemText: string): {
       issuer = 'Sectigo RSA Domain Validation Secure Server CA';
     }
     
-    // Try to extract dates using a simple regex approach for common date formats
-    // Look for certificate validity dates in the PEM structure
     let issueDate = null;
     let expiry = null;
     
-    try {
-      // Look for certificate section
-      const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
-      if (certMatch) {
+    // Parse certificate for dates
+    const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
+    if (certMatch) {
+      try {
         const pemContent = certMatch[1].replace(/\s/g, '');
         const binaryString = atob(pemContent);
         const bytes = new Uint8Array(binaryString.length);
@@ -54,51 +92,30 @@ const getCertDetailsFromPem = (pemText: string): {
           bytes[i] = binaryString.charCodeAt(i);
         }
         
-        // Convert to string and look for readable date patterns
-        const certString = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
-        
-        // Look for date patterns like "241016" (YYMMDD) or "20241016" (YYYYMMDD)
-        const datePatterns = certString.match(/(\d{6,8})/g);
-        if (datePatterns && datePatterns.length >= 2) {
-          // Try to parse the first two date-like patterns
-          const firstDate = datePatterns[0];
-          const secondDate = datePatterns[1];
-          
-          if (firstDate.length === 6) {
-            // YYMMDD format
-            const year = parseInt(firstDate.substr(0, 2));
-            const fullYear = year < 50 ? 2000 + year : 1900 + year;
-            const month = firstDate.substr(2, 2);
-            const day = firstDate.substr(4, 2);
-            issueDate = `${fullYear}-${month}-${day}T00:00:00Z`;
-          } else if (firstDate.length === 8) {
-            // YYYYMMDD format
-            const year = firstDate.substr(0, 4);
-            const month = firstDate.substr(4, 2);
-            const day = firstDate.substr(6, 2);
-            issueDate = `${year}-${month}-${day}T00:00:00Z`;
-          }
-          
-          if (secondDate.length === 6) {
-            // YYMMDD format
-            const year = parseInt(secondDate.substr(0, 2));
-            const fullYear = year < 50 ? 2000 + year : 1900 + year;
-            const month = secondDate.substr(2, 2);
-            const day = secondDate.substr(4, 2);
-            expiry = `${fullYear}-${month}-${day}T00:00:00Z`;
-          } else if (secondDate.length === 8) {
-            // YYYYMMDD format
-            const year = secondDate.substr(0, 4);
-            const month = secondDate.substr(4, 2);
-            const day = secondDate.substr(6, 2);
-            expiry = `${year}-${month}-${day}T00:00:00Z`;
+        // Look for validity sequence in certificate
+        // X.509 certificates have validity as a SEQUENCE of two dates
+        for (let i = 0; i < bytes.length - 20; i++) {
+          if (bytes[i] === 0x30) { // SEQUENCE tag
+            const seqLen = bytes[i + 1];
+            if (seqLen > 20 && seqLen < 40) { // Reasonable length for validity sequence
+              // Try to parse two consecutive dates
+              const firstDate = parseASN1Date(bytes, i + 2);
+              if (firstDate.date) {
+                const secondDate = parseASN1Date(bytes, firstDate.newOffset);
+                if (secondDate.date) {
+                  issueDate = firstDate.date;
+                  expiry = secondDate.date;
+                  break;
+                }
+              }
+            }
           }
         }
         
         console.log("Extracted certificate details:", { authority, issuer, issueDate, expiry });
+      } catch (parseError) {
+        console.log("Could not parse certificate dates:", parseError);
       }
-    } catch (parseError) {
-      console.log("Could not parse certificate dates:", parseError);
     }
     
     return { authority, issuer, expiry, issueDate };
@@ -139,19 +156,47 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
     try {
       console.log("Fetching certificate from:", result.certificateUrl);
       
-      const response = await fetch(result.certificateUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
-        }
-      });
+      // Try multiple approaches to fetch the certificate
+      let response;
+      let pemText;
       
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        // First attempt: direct fetch
+        response = await fetch(result.certificateUrl, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        pemText = await response.text();
+      } catch (corsError) {
+        console.log("CORS error, trying alternative approach:", corsError);
+        
+        // Fallback: try with no-cors mode (limited but might work)
+        try {
+          response = await fetch(result.certificateUrl, {
+            method: 'GET',
+            mode: 'no-cors'
+          });
+          
+          if (response.type === 'opaque') {
+            result.errors.push("Certificate URL blocked by CORS policy. Unable to verify certificate details.");
+            return result;
+          }
+          
+          pemText = await response.text();
+        } catch (fallbackError) {
+          throw new Error(`Failed to fetch certificate: ${corsError.message}`);
+        }
       }
       
-      const pemText = await response.text();
       console.log("Certificate content preview:", pemText.substring(0, 200) + "...");
       
       if (pemText.includes('-----BEGIN CERTIFICATE-----')) {
