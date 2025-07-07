@@ -11,92 +11,7 @@ export interface BIMIParseResult {
   errors: string[];
 }
 
-// Helper to parse ASN.1 DER encoded certificate data and extract dates
-const parseX509Certificate = (certData: Uint8Array): {
-  authority: string | null;
-  issuer: string | null;
-  expiry: string | null;
-  issueDate: string | null;
-} => {
-  try {
-    console.log("Parsing X.509 certificate, size:", certData.length);
-    
-    // Convert to hex string for pattern matching
-    const hexString = Array.from(certData).map(b => b.toString(16).padStart(2, '0')).join('');
-    
-    // Look for ASN.1 UTCTime (tag 17) and GeneralizedTime (tag 18) patterns
-    // UTCTime format: 17 0D YYMMDDHHMMSSZ (13 bytes total)
-    // GeneralizedTime format: 18 0F YYYYMMDDHHMMSSZ (15 bytes total)
-    
-    const dates: string[] = [];
-    
-    // Find UTCTime patterns (17 0D followed by 12 hex digits + 5A for Z)
-    const utcTimePattern = /170d([0-9a-f]{12})5a/gi;
-    let match;
-    while ((match = utcTimePattern.exec(hexString)) !== null) {
-      const dateHex = match[1];
-      // Convert hex to ASCII
-      const dateStr = dateHex.match(/.{2}/g)?.map(hex => String.fromCharCode(parseInt(hex, 16))).join('') || '';
-      if (dateStr.length === 6) {
-        // UTCTime: YYMMDD format, assume 20XX for years 00-49, 19XX for 50-99
-        const year = parseInt(dateStr.substr(0, 2));
-        const fullYear = year < 50 ? 2000 + year : 1900 + year;
-        const month = dateStr.substr(2, 2);
-        const day = dateStr.substr(4, 2);
-        dates.push(`${fullYear}-${month}-${day}T00:00:00Z`);
-      }
-    }
-    
-    // Find GeneralizedTime patterns (18 0F followed by 14 hex digits + 5A for Z)
-    const genTimePattern = /180f([0-9a-f]{14})5a/gi;
-    while ((match = genTimePattern.exec(hexString)) !== null) {
-      const dateHex = match[1];
-      // Convert hex to ASCII
-      const dateStr = dateHex.match(/.{2}/g)?.map(hex => String.fromCharCode(parseInt(hex, 16))).join('') || '';
-      if (dateStr.length === 7) {
-        // GeneralizedTime: YYYYMMDDHHMM format
-        const year = dateStr.substr(0, 4);
-        const month = dateStr.substr(4, 2);
-        const day = dateStr.substr(6, 2);
-        dates.push(`${year}-${month}-${day}T00:00:00Z`);
-      }
-    }
-    
-    console.log("Extracted dates from certificate:", dates);
-    
-    // Look for authority/issuer info in readable strings
-    const certString = Array.from(certData).map(b => String.fromCharCode(b)).join('');
-    
-    let authority = null;
-    let issuer = null;
-    
-    if (certString.includes('DigiCert')) {
-      authority = 'DigiCert, Inc.';
-      if (certString.includes('Verified Mark')) {
-        issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
-      }
-    } else if (certString.includes('Entrust')) {
-      authority = 'Entrust, Inc.';
-      issuer = 'Entrust Certificate Services';
-    } else if (certString.includes('Sectigo')) {
-      authority = 'Sectigo Limited';
-      issuer = 'Sectigo RSA Domain Validation Secure Server CA';
-    }
-    
-    // Return dates in order: issue date (notBefore), expiry date (notAfter)
-    return { 
-      authority, 
-      issuer, 
-      issueDate: dates.length > 0 ? dates[0] : null,
-      expiry: dates.length > 1 ? dates[1] : null
-    };
-  } catch (e) {
-    console.error("Error parsing binary certificate:", e);
-    return { authority: null, issuer: null, expiry: null, issueDate: null };
-  }
-};
-
-// Enhanced helper to extract certificate details from PEM text
+// Simple helper to extract certificate details from PEM text
 const getCertDetailsFromPem = (pemText: string): { 
   authority: string | null; 
   expiry: string | null; 
@@ -106,37 +21,87 @@ const getCertDetailsFromPem = (pemText: string): {
   try {
     console.log("Parsing certificate, PEM text length:", pemText.length);
     
-    // Look for certificate text section between BEGIN and END CERTIFICATE
-    const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
-    if (!certMatch) {
-      console.log("No certificate section found in PEM");
-      return { authority: null, issuer: null, expiry: null, issueDate: null };
-    }
-
-    // Try to decode the base64 certificate data
-    try {
-      const pemContent = certMatch[1].replace(/\s/g, '');
-      const binaryString = atob(pemContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+    // Look for authority/issuer info in the certificate text
+    let authority = null;
+    let issuer = null;
+    
+    if (pemText.includes('DigiCert')) {
+      authority = 'DigiCert, Inc.';
+      if (pemText.includes('Verified Mark')) {
+        issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
       }
-      
-      console.log("Successfully decoded certificate, size:", bytes.length);
-      
-      // Try to parse the binary certificate
-      const binaryResult = parseX509Certificate(bytes);
-      console.log("Binary parsing result:", binaryResult);
-      
-      // If we got dates from binary parsing, use those
-      if (binaryResult.issueDate || binaryResult.expiry) {
-        return binaryResult;
-      }
-    } catch (decodeError) {
-      console.log("Could not decode base64 certificate:", decodeError);
+    } else if (pemText.includes('Entrust')) {
+      authority = 'Entrust, Inc.';
+      issuer = 'Entrust Certificate Services';
+    } else if (pemText.includes('Sectigo')) {
+      authority = 'Sectigo Limited';
+      issuer = 'Sectigo RSA Domain Validation Secure Server CA';
     }
     
-    return { authority: null, issuer: null, expiry: null, issueDate: null };
+    // Try to extract dates using a simple regex approach for common date formats
+    // Look for certificate validity dates in the PEM structure
+    let issueDate = null;
+    let expiry = null;
+    
+    try {
+      // Look for certificate section
+      const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
+      if (certMatch) {
+        const pemContent = certMatch[1].replace(/\s/g, '');
+        const binaryString = atob(pemContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        
+        // Convert to string and look for readable date patterns
+        const certString = Array.from(bytes).map(b => String.fromCharCode(b)).join('');
+        
+        // Look for date patterns like "241016" (YYMMDD) or "20241016" (YYYYMMDD)
+        const datePatterns = certString.match(/(\d{6,8})/g);
+        if (datePatterns && datePatterns.length >= 2) {
+          // Try to parse the first two date-like patterns
+          const firstDate = datePatterns[0];
+          const secondDate = datePatterns[1];
+          
+          if (firstDate.length === 6) {
+            // YYMMDD format
+            const year = parseInt(firstDate.substr(0, 2));
+            const fullYear = year < 50 ? 2000 + year : 1900 + year;
+            const month = firstDate.substr(2, 2);
+            const day = firstDate.substr(4, 2);
+            issueDate = `${fullYear}-${month}-${day}T00:00:00Z`;
+          } else if (firstDate.length === 8) {
+            // YYYYMMDD format
+            const year = firstDate.substr(0, 4);
+            const month = firstDate.substr(4, 2);
+            const day = firstDate.substr(6, 2);
+            issueDate = `${year}-${month}-${day}T00:00:00Z`;
+          }
+          
+          if (secondDate.length === 6) {
+            // YYMMDD format
+            const year = parseInt(secondDate.substr(0, 2));
+            const fullYear = year < 50 ? 2000 + year : 1900 + year;
+            const month = secondDate.substr(2, 2);
+            const day = secondDate.substr(4, 2);
+            expiry = `${fullYear}-${month}-${day}T00:00:00Z`;
+          } else if (secondDate.length === 8) {
+            // YYYYMMDD format
+            const year = secondDate.substr(0, 4);
+            const month = secondDate.substr(4, 2);
+            const day = secondDate.substr(6, 2);
+            expiry = `${year}-${month}-${day}T00:00:00Z`;
+          }
+        }
+        
+        console.log("Extracted certificate details:", { authority, issuer, issueDate, expiry });
+      }
+    } catch (parseError) {
+      console.log("Could not parse certificate dates:", parseError);
+    }
+    
+    return { authority, issuer, expiry, issueDate };
     
   } catch (e) {
     console.error("Error parsing certificate details:", e);
