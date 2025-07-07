@@ -61,27 +61,59 @@ const getCertDetailsFromPem = (pemText: string): {
   try {
     console.log("Parsing certificate, PEM text length:", pemText.length);
     
-    // Extract authority/issuer from text patterns
+    // Extract authority/issuer from certificate content
     let authority = null;
     let issuer = null;
     
-    if (pemText.includes('DigiCert')) {
-      authority = 'DigiCert, Inc.';
-      if (pemText.includes('Verified Mark')) {
-        issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
+    // Look for issuer information in the certificate chain
+    const certLines = pemText.split('\n');
+    const base64Content = certLines
+      .filter(line => !line.startsWith('-----') && line.trim() !== '')
+      .join('');
+    
+    try {
+      // Decode the base64 certificate to extract issuer
+      const binaryString = atob(base64Content);
+      const certText = binaryString;
+      
+      // Look for DigiCert patterns
+      if (certText.includes('DigiCert') || pemText.includes('DigiCert')) {
+        authority = 'DigiCert, Inc.';
+        if (certText.includes('Verified Mark') || pemText.includes('Verified Mark')) {
+          issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
+        } else {
+          issuer = 'DigiCert';
+        }
       }
-    } else if (pemText.includes('Entrust')) {
-      authority = 'Entrust, Inc.';
-      issuer = 'Entrust Certificate Services';
-    } else if (pemText.includes('Sectigo')) {
-      authority = 'Sectigo Limited';
-      issuer = 'Sectigo RSA Domain Validation Secure Server CA';
+      // Look for Entrust patterns
+      else if (certText.includes('Entrust') || pemText.includes('Entrust')) {
+        authority = 'Entrust, Inc.';
+        issuer = 'Entrust Certificate Services';
+      }
+      // Look for Sectigo patterns
+      else if (certText.includes('Sectigo') || pemText.includes('Sectigo')) {
+        authority = 'Sectigo Limited';
+        issuer = 'Sectigo RSA Domain Validation Secure Server CA';
+      }
+      // Look for other common CAs
+      else if (certText.includes('VeriSign') || pemText.includes('VeriSign')) {
+        authority = 'VeriSign, Inc.';
+        issuer = 'VeriSign';
+      }
+      else if (certText.includes('GlobalSign') || pemText.includes('GlobalSign')) {
+        authority = 'GlobalSign';
+        issuer = 'GlobalSign';
+      }
+      
+      console.log("Authority/Issuer detection results:", { authority, issuer });
+    } catch (decodeError) {
+      console.log("Could not decode certificate for issuer extraction:", decodeError);
     }
     
     let issueDate = null;
     let expiry = null;
     
-    // Parse certificate for dates
+    // Parse certificate for dates using ASN.1 parsing
     const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
     if (certMatch) {
       try {
@@ -93,12 +125,10 @@ const getCertDetailsFromPem = (pemText: string): {
         }
         
         // Look for validity sequence in certificate
-        // X.509 certificates have validity as a SEQUENCE of two dates
         for (let i = 0; i < bytes.length - 20; i++) {
           if (bytes[i] === 0x30) { // SEQUENCE tag
             const seqLen = bytes[i + 1];
             if (seqLen > 20 && seqLen < 40) { // Reasonable length for validity sequence
-              // Try to parse two consecutive dates
               const firstDate = parseASN1Date(bytes, i + 2);
               if (firstDate.date) {
                 const secondDate = parseASN1Date(bytes, firstDate.newOffset);
@@ -156,13 +186,11 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
     try {
       console.log("Fetching certificate from:", result.certificateUrl);
       
-      // Try multiple approaches to fetch the certificate
-      let response;
       let pemText;
       
       try {
-        // First attempt: direct fetch
-        response = await fetch(result.certificateUrl, {
+        // First attempt: direct fetch with CORS
+        const response = await fetch(result.certificateUrl, {
           method: 'GET',
           mode: 'cors',
           headers: {
@@ -176,30 +204,21 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
         }
         
         pemText = await response.text();
-      } catch (corsError) {
-        console.log("CORS error, trying alternative approach:", corsError);
+        console.log("Certificate content preview:", pemText.substring(0, 200) + "...");
         
-        // Fallback: try with no-cors mode (limited but might work)
-        try {
-          response = await fetch(result.certificateUrl, {
-            method: 'GET',
-            mode: 'no-cors'
-          });
-          
-          if (response.type === 'opaque') {
-            result.errors.push("Certificate URL blocked by CORS policy. Unable to verify certificate details.");
-            return result;
-          }
-          
-          pemText = await response.text();
-        } catch (fallbackError) {
-          throw new Error(`Failed to fetch certificate: ${corsError.message}`);
+      } catch (corsError) {
+        console.log("CORS error encountered:", corsError);
+        
+        // Handle CORS errors more gracefully
+        if (corsError.message.includes('CORS') || corsError.message.includes('Failed to fetch')) {
+          result.errors.push("Certificate URL is blocked by CORS policy. Unable to verify certificate details in browser environment.");
+          return result;
+        } else {
+          throw corsError;
         }
       }
       
-      console.log("Certificate content preview:", pemText.substring(0, 200) + "...");
-      
-      if (pemText.includes('-----BEGIN CERTIFICATE-----')) {
+      if (pemText && pemText.includes('-----BEGIN CERTIFICATE-----')) {
         const { authority, issuer, expiry, issueDate } = getCertDetailsFromPem(pemText);
         result.certificateAuthority = authority;
         result.certificateIssuer = issuer;
@@ -209,7 +228,7 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
         console.log("Final certificate details:", { authority, issuer, expiry, issueDate });
       } else {
         result.errors.push("VMC URL did not return a valid PEM certificate format.");
-        console.log("Invalid certificate format - not PEM. Content preview:", pemText.substring(0, 200));
+        console.log("Invalid certificate format - not PEM. Content preview:", pemText?.substring(0, 200) || 'No content');
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
