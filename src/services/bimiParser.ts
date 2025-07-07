@@ -61,54 +61,63 @@ const getCertDetailsFromPem = (pemText: string): {
   try {
     console.log("Parsing certificate, PEM text length:", pemText.length);
     
-    // Extract authority/issuer from certificate content
+    // Extract authority/issuer from certificate content - check the raw PEM text first
     let authority = null;
     let issuer = null;
     
-    // Look for issuer information in the certificate chain
-    const certLines = pemText.split('\n');
-    const base64Content = certLines
-      .filter(line => !line.startsWith('-----') && line.trim() !== '')
-      .join('');
+    // Look for common certificate authority patterns in the PEM text itself
+    if (pemText.includes('DigiCert')) {
+      authority = 'DigiCert, Inc.';
+      if (pemText.includes('Verified Mark')) {
+        issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
+      } else {
+        issuer = 'DigiCert';
+      }
+    } else if (pemText.includes('Entrust')) {
+      authority = 'Entrust, Inc.';
+      issuer = 'Entrust Certificate Services';
+    } else if (pemText.includes('Sectigo')) {
+      authority = 'Sectigo Limited';
+      issuer = 'Sectigo RSA Domain Validation Secure Server CA';
+    } else if (pemText.includes('VeriSign')) {
+      authority = 'VeriSign, Inc.';
+      issuer = 'VeriSign';
+    } else if (pemText.includes('GlobalSign')) {
+      authority = 'GlobalSign';
+      issuer = 'GlobalSign';
+    }
     
-    try {
-      // Decode the base64 certificate to extract issuer
-      const binaryString = atob(base64Content);
-      const certText = binaryString;
-      
-      // Look for DigiCert patterns
-      if (certText.includes('DigiCert') || pemText.includes('DigiCert')) {
-        authority = 'DigiCert, Inc.';
-        if (certText.includes('Verified Mark') || pemText.includes('Verified Mark')) {
-          issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
-        } else {
-          issuer = 'DigiCert';
+    // If we didn't find it in the PEM text, try to decode and search the certificate content
+    if (!authority) {
+      const certMatch = pemText.match(/-----BEGIN CERTIFICATE-----([\s\S]*?)-----END CERTIFICATE-----/);
+      if (certMatch) {
+        try {
+          const pemContent = certMatch[1].replace(/\s/g, '');
+          const binaryString = atob(pemContent);
+          
+          // Search for authority patterns in the decoded content
+          if (binaryString.includes('DigiCert')) {
+            authority = 'DigiCert, Inc.';
+            if (binaryString.includes('Verified Mark')) {
+              issuer = 'DigiCert Verified Mark RSA4096 SHA256 2021 CA1';
+            } else {
+              issuer = 'DigiCert';
+            }
+          } else if (binaryString.includes('Entrust')) {
+            authority = 'Entrust, Inc.';
+            issuer = 'Entrust Certificate Services';
+          } else if (binaryString.includes('Sectigo')) {
+            authority = 'Sectigo Limited';
+            issuer = 'Sectigo RSA Domain Validation Secure Server CA';
+          }
+          
+        } catch (decodeError) {
+          console.log("Could not decode certificate for issuer extraction:", decodeError);
         }
       }
-      // Look for Entrust patterns
-      else if (certText.includes('Entrust') || pemText.includes('Entrust')) {
-        authority = 'Entrust, Inc.';
-        issuer = 'Entrust Certificate Services';
-      }
-      // Look for Sectigo patterns
-      else if (certText.includes('Sectigo') || pemText.includes('Sectigo')) {
-        authority = 'Sectigo Limited';
-        issuer = 'Sectigo RSA Domain Validation Secure Server CA';
-      }
-      // Look for other common CAs
-      else if (certText.includes('VeriSign') || pemText.includes('VeriSign')) {
-        authority = 'VeriSign, Inc.';
-        issuer = 'VeriSign';
-      }
-      else if (certText.includes('GlobalSign') || pemText.includes('GlobalSign')) {
-        authority = 'GlobalSign';
-        issuer = 'GlobalSign';
-      }
-      
-      console.log("Authority/Issuer detection results:", { authority, issuer });
-    } catch (decodeError) {
-      console.log("Could not decode certificate for issuer extraction:", decodeError);
     }
+    
+    console.log("Authority/Issuer detection results:", { authority, issuer });
     
     let issueDate = null;
     let expiry = null;
@@ -186,37 +195,21 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
     try {
       console.log("Fetching certificate from:", result.certificateUrl);
       
-      let pemText;
+      const response = await fetch(result.certificateUrl, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
+          'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
+        }
+      });
       
-      try {
-        // First attempt: direct fetch with CORS
-        const response = await fetch(result.certificateUrl, {
-          method: 'GET',
-          mode: 'cors',
-          headers: {
-            'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
-            'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        pemText = await response.text();
-        console.log("Certificate content preview:", pemText.substring(0, 200) + "...");
-        
-      } catch (corsError) {
-        console.log("CORS error encountered:", corsError);
-        
-        // Handle CORS errors more gracefully
-        if (corsError.message.includes('CORS') || corsError.message.includes('Failed to fetch')) {
-          result.errors.push("Certificate URL is blocked by CORS policy. Unable to verify certificate details in browser environment.");
-          return result;
-        } else {
-          throw corsError;
-        }
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
+      
+      const pemText = await response.text();
+      console.log("Certificate content preview:", pemText.substring(0, 200) + "...");
       
       if (pemText && pemText.includes('-----BEGIN CERTIFICATE-----')) {
         const { authority, issuer, expiry, issueDate } = getCertDetailsFromPem(pemText);
@@ -232,7 +225,14 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Unknown error';
-      result.errors.push(`Error fetching BIMI certificate: ${errorMessage}`);
+      
+      // Check if it's a CORS or network error
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('CORS') || errorMessage.includes('Network')) {
+        result.errors.push("Certificate URL is blocked by CORS policy. Unable to verify certificate details in browser environment.");
+      } else {
+        result.errors.push(`Error fetching BIMI certificate: ${errorMessage}`);
+      }
+      
       console.error("BIMI VMC Error:", e);
     }
   }
