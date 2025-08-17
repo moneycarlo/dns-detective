@@ -40,7 +40,7 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
       </div>
       <Textarea
         id="domain-input"
-        placeholder="Enter domains (one per line)&#10;google.com&#10;iterable.com"
+        placeholder="Enter domains (one per line)&#10;google.com&#10;yahoo.com"
         value={domainText}
         onChange={(e) => setDomainText(e.target.value)}
         disabled={isLoading}
