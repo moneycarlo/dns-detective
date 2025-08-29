@@ -26,7 +26,7 @@ const DkimLookup = () => {
           <CardHeader>
             <CardTitle className="text-center">DKIM Record Validator</CardTitle>
             <CardDescription className="text-center">
-              Enter DKIM selectors and domains to validate their DNS records
+              Enter domains and DKIM selectors to validate their DNS records
             </CardDescription>
           </CardHeader>
           <CardContent>
