@@ -39,11 +39,11 @@ export const DkimInput: React.FC<DkimInputProps> = ({ onLookup, isLoading }) => 
           DKIM Entries (max 40)
         </Label>
         <p className="text-sm text-muted-foreground">
-          Enter one entry per line in the format: <code className="bg-muted px-1 rounded">selector:domain.com</code>
+          Enter one entry per line in the format: <code className="bg-muted px-1 rounded">domain:selector</code>
         </p>
         <Textarea
           id="dkim-input"
-          placeholder="scph1122:email.allrecipes.com&#10;scph1123:xmail.allrecipes.com"
+          placeholder="email.domain.com:selector"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={isLoading}
@@ -51,7 +51,7 @@ export const DkimInput: React.FC<DkimInputProps> = ({ onLookup, isLoading }) => 
           rows={6}
         />
         <div className="flex justify-between text-sm text-muted-foreground">
-          <span>Format: selector:domain.com</span>
+          <span>Format: domain.com:selector</span>
           <span className={lineCount > 40 ? 'text-destructive font-medium' : ''}>
             {lineCount}/40 entries
           </span>
