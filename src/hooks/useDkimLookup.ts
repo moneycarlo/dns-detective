@@ -14,11 +14,11 @@ export const useDkimLookup = () => {
       const parts = trimmedLine.split(':');
       
       if (parts.length !== 2) {
-        throw new Error(`Invalid format on line ${index + 1}: "${trimmedLine}". Expected format: selector:domain.com`);
+        throw new Error(`Invalid format on line ${index + 1}: "${trimmedLine}". Expected format: domain.com:selector`);
       }
       
-      const selector = parts[0].trim();
-      const domain = parts[1].trim();
+      const domain = parts[0].trim();
+      const selector = parts[1].trim();
       
       if (!selector || !domain) {
         throw new Error(`Invalid format on line ${index + 1}: Both selector and domain are required.`);
