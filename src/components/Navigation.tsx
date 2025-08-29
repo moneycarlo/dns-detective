@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, Key } from 'lucide-react';
+import { Shield, Key, Network, Type } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
   const location = useLocation();
@@ -36,6 +36,28 @@ export const Navigation: React.FC = () => {
                 <Link to="/dkim-lookup" className="flex items-center space-x-2">
                   <Key className="h-4 w-4" />
                   <span>Bulk DKIM Lookup</span>
+                </Link>
+              </Button>
+              
+              <Button
+                asChild
+                variant={location.pathname === '/ip-aggregator' ? 'default' : 'ghost'}
+                size="sm"
+              >
+                <Link to="/ip-aggregator" className="flex items-center space-x-2">
+                  <Network className="h-4 w-4" />
+                  <span>IP Address Aggregator</span>
+                </Link>
+              </Button>
+              
+              <Button
+                asChild
+                variant={location.pathname === '/text-manipulations' ? 'default' : 'ghost'}
+                size="sm"
+              >
+                <Link to="/text-manipulations" className="flex items-center space-x-2">
+                  <Type className="h-4 w-4" />
+                  <span>Text Manipulations</span>
                 </Link>
               </Button>
             </div>

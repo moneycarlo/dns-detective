@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { Navigation } from "@/components/Navigation";
 import Index from "./pages/Index";
 import DkimLookup from "./pages/DkimLookup";
+import IpAggregator from "./pages/IpAggregator";
+import TextManipulations from "./pages/TextManipulations";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +23,8 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/dkim-lookup" element={<DkimLookup />} />
+            <Route path="/ip-aggregator" element={<IpAggregator />} />
+            <Route path="/text-manipulations" element={<TextManipulations />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
