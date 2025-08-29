@@ -39,7 +39,7 @@ export const DkimInput: React.FC<DkimInputProps> = ({ onLookup, isLoading }) => 
           DKIM Entries (max 40)
         </Label>
         <p className="text-sm text-muted-foreground">
-          Enter one entry per line in the format: <code className="bg-muted px-1 rounded">domain:selector</code>
+          Enter one entry per line in the format: <code className="bg-muted px-1 rounded">sendingdomain:selector</code>
         </p>
         <Textarea
           id="dkim-input"
