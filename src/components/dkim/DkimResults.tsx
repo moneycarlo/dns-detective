@@ -98,8 +98,10 @@ export const DkimResults: React.FC<DkimResultsProps> = ({ results }) => {
             <CardContent className="pt-0">
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-1">Input:</p>
-                  <code className="text-sm bg-muted px-2 py-1 rounded">{result.originalInput}</code>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Selector: 
+                  <code className="text-sm bg-muted px-2 py-1 rounded">{result.selector}</code> </p>
+                  <p className="text-sm font-medium text-muted-foreground mb-1">Domain: 
+                  <code className="text-sm bg-muted px-2 py-1 rounded">{result.domain}</code> </p>
                 </div>
                 
                 {result.record && (
