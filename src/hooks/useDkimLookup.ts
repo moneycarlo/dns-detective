@@ -6,19 +6,31 @@ export const useDkimLookup = () => {
   const [results, setResults] = useState<DkimResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const parseDkimEntries = (input: string): DkimEntry[] => {
+  const parseDkimEntries = (input: string, useEntireString: boolean = false): DkimEntry[] => {
     const lines = input.trim().split('\n').filter(line => line.trim());
     
     return lines.map((line, index) => {
       const trimmedLine = line.trim();
-      const parts = trimmedLine.split(':');
+      let selector: string;
+      let domain: string;
       
-      if (parts.length !== 2) {
-        throw new Error(`Invalid format on line ${index + 1}: "${trimmedLine}". Expected format: domain.com:selector`);
+      if (useEntireString) {
+        // Parse entire string format: selector._domainkey.domain.com
+        const parts = trimmedLine.split('._domainkey.');
+        if (parts.length !== 2) {
+          throw new Error(`Invalid format on line ${index + 1}: "${trimmedLine}". Expected format: selector._domainkey.domain.com`);
+        }
+        selector = parts[0];
+        domain = parts[1];
+      } else {
+        // Parse domain:selector format
+        const parts = trimmedLine.split(':');
+        if (parts.length !== 2) {
+          throw new Error(`Invalid format on line ${index + 1}: "${trimmedLine}". Expected format: domain.com:selector`);
+        }
+        domain = parts[0].trim();
+        selector = parts[1].trim();
       }
-      
-      const domain = parts[0].trim();
-      const selector = parts[1].trim();
       
       if (!selector || !domain) {
         throw new Error(`Invalid format on line ${index + 1}: Both selector and domain are required.`);
@@ -33,10 +45,10 @@ export const useDkimLookup = () => {
     });
   };
 
-  const handleLookup = async (input: string) => {
+  const handleLookup = async (input: string, useEntireString: boolean = false) => {
     try {
       setIsLoading(true);
-      const entries = parseDkimEntries(input);
+      const entries = parseDkimEntries(input, useEntireString);
       
       if (entries.length > 40) {
         throw new Error('Maximum 40 domains allowed');

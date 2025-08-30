@@ -18,6 +18,8 @@ interface TextManipulationInputProps {
   onClear: () => void;
   onPreview: () => void;
   isProcessing: boolean;
+  customDelimiter: string;
+  onCustomDelimiterChange: (value: string) => void;
 }
 
 export const TextManipulationInput: React.FC<TextManipulationInputProps> = ({
@@ -28,7 +30,9 @@ export const TextManipulationInput: React.FC<TextManipulationInputProps> = ({
   onProcess,
   onClear,
   onPreview,
-  isProcessing
+  isProcessing,
+  customDelimiter,
+  onCustomDelimiterChange
 }) => {
   const updateOption = <K extends keyof TextManipulationOptions>(
     key: K,
@@ -77,14 +81,29 @@ elderberry`}
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
                   <SelectItem value="comma">Comma (,)</SelectItem>
                   <SelectItem value="semicolon">Semicolon (;)</SelectItem>
                   <SelectItem value="pipe">Pipe (|)</SelectItem>
                   <SelectItem value="space">Space</SelectItem>
                   <SelectItem value="newline">New Line</SelectItem>
                   <SelectItem value="tab">Tab</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
                 </SelectContent>
               </Select>
+              
+              {options.delimiter === 'custom' && (
+                <div className="mt-2">
+                  <Label htmlFor="custom-delimiter">Custom Delimiter</Label>
+                  <input
+                    id="custom-delimiter"
+                    placeholder="Enter custom delimiter"
+                    value={customDelimiter}
+                    onChange={(e) => onCustomDelimiterChange(e.target.value)}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 font-mono"
+                  />
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">

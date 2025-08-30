@@ -13,6 +13,7 @@ const TextManipulations: React.FC = () => {
   const [processedCount, setProcessedCount] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isPreview, setIsPreview] = useState(false);
+  const [customDelimiter, setCustomDelimiter] = useState('');
   
   const [options, setOptions] = useState<TextManipulationOptions>({
     delimiter: 'comma',
@@ -36,12 +37,12 @@ const TextManipulations: React.FC = () => {
       const lines = input.split('\n');
       const originalLineCount = lines.length;
       
-      const result = processTextInput(input, options);
+      const result = processTextInput(input, options, customDelimiter);
       setOutput(result);
       setOriginalCount(originalLineCount);
       
       // Count processed items
-      const processedLines = result ? (options.delimiter === 'newline' ? result.split('\n') : result.split(options.delimiter === 'comma' ? ', ' : options.delimiter === 'semicolon' ? '; ' : options.delimiter === 'pipe' ? '| ' : options.delimiter === 'space' ? ' ' : options.delimiter === 'tab' ? '\t' : ', ')) : [];
+      const processedLines = result ? (options.delimiter === 'newline' ? result.split('\n') : options.delimiter === 'none' ? [result] : result.split(options.delimiter === 'comma' ? ', ' : options.delimiter === 'semicolon' ? '; ' : options.delimiter === 'pipe' ? '| ' : options.delimiter === 'space' ? ' ' : options.delimiter === 'tab' ? '\t' : options.delimiter === 'custom' ? customDelimiter + ' ' : ', ')) : [];
       setProcessedCount(processedLines.filter(line => line.trim().length > 0).length);
       
       toast.success(`Text processed successfully! ${processedLines.length} items formatted.`);
@@ -55,10 +56,10 @@ const TextManipulations: React.FC = () => {
 
   const handlePreview = () => {
     setIsPreview(true);
-    const previewResult = formatPreviewResult(options);
+    const previewResult = formatPreviewResult(options, customDelimiter);
     setOutput(previewResult);
     setOriginalCount(5); // Sample has 5 items
-    setProcessedCount(previewResult ? (options.delimiter === 'newline' ? previewResult.split('\n') : previewResult.split(options.delimiter === 'comma' ? ', ' : options.delimiter === 'semicolon' ? '; ' : options.delimiter === 'pipe' ? '| ' : options.delimiter === 'space' ? ' ' : options.delimiter === 'tab' ? '\t' : ', ')).length : 0);
+    setProcessedCount(previewResult ? (options.delimiter === 'newline' ? previewResult.split('\n') : options.delimiter === 'none' ? [previewResult] : previewResult.split(options.delimiter === 'comma' ? ', ' : options.delimiter === 'semicolon' ? '; ' : options.delimiter === 'pipe' ? '| ' : options.delimiter === 'space' ? ' ' : options.delimiter === 'tab' ? '\t' : options.delimiter === 'custom' ? customDelimiter + ' ' : ', ')).length : 0);
     toast.success('Preview generated with sample data');
   };
 
@@ -96,6 +97,8 @@ const TextManipulations: React.FC = () => {
               onClear={handleClear}
               onPreview={handlePreview}
               isProcessing={isProcessing}
+              customDelimiter={customDelimiter}
+              onCustomDelimiterChange={setCustomDelimiter}
             />
           </div>
           

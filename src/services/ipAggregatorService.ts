@@ -175,31 +175,44 @@ export const aggregateRanges = (processed: ProcessedIp[]): AggregatedRange[] => 
   return aggregated;
 };
 
-// Convert IP range to CIDR notation
+// Convert IP range to CIDR notation with proper algorithm
 export const rangeToCidr = (startInt: number, endInt: number): string[] => {
   const cidrs: string[] = [];
   let start = startInt;
   
   while (start <= endInt) {
-    // Find the largest CIDR block that fits
-    let maxPrefix = 32;
-    let blockSize = 1;
+    // Find the largest power of 2 that fits
+    let maxSize = endInt - start + 1;
+    let size = 1;
     
-    for (let prefix = 0; prefix <= 32; prefix++) {
-      const mask = (0xFFFFFFFF << (32 - prefix)) >>> 0;
-      const networkStart = (start & mask) >>> 0;
-      const networkEnd = (networkStart + (1 << (32 - prefix)) - 1) >>> 0;
-      
-      if (networkStart === start && networkEnd <= endInt) {
-        maxPrefix = prefix;
-        blockSize = 1 << (32 - prefix);
-      } else {
-        break;
+    // Find the largest block size that:
+    // 1. Is a power of 2
+    // 2. Fits within the remaining range
+    // 3. Starts at a boundary that's aligned to that block size
+    while (size <= maxSize && (size * 2) <= maxSize && (start % (size * 2)) === 0) {
+      size *= 2;
+    }
+    
+    // Convert size to prefix length
+    const prefixLength = 32 - Math.log2(size);
+    
+    // Verify this block fits exactly
+    const blockEnd = start + size - 1;
+    if (blockEnd > endInt) {
+      // Reduce size to fit
+      size = 1;
+      while (start + size - 1 <= endInt && (start % size) === 0) {
+        if (size * 2 <= (endInt - start + 1) && (start % (size * 2)) === 0) {
+          size *= 2;
+        } else {
+          break;
+        }
       }
     }
     
-    cidrs.push(`${intToIp(start)}/${maxPrefix}`);
-    start += blockSize;
+    const prefix = 32 - Math.log2(size);
+    cidrs.push(`${intToIp(start)}/${prefix}`);
+    start += size;
   }
   
   return cidrs;

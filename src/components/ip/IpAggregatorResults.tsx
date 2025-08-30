@@ -89,30 +89,32 @@ export const IpAggregatorResults: React.FC<IpAggregatorResultsProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2 max-h-60 overflow-y-auto">
-              {processedIps.map((ip, index) => (
-                <div key={index} className="flex items-center justify-between p-2 rounded border">
-                  <div className="flex items-center space-x-2">
-                    {ip.isValid ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
-                    ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
-                    )}
-                    <span className="font-mono text-sm">{ip.original}</span>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={ip.isValid ? 'default' : 'destructive'}>
-                      {ip.isValid ? 'Valid' : 'Invalid'}
-                    </Badge>
-                    {ip.isValid && (
-                      <span className="text-sm text-muted-foreground font-mono">
-                        {ip.normalized}
-                      </span>
-                    )}
-                  </div>
+        <div className="space-y-2">
+          <h3 className="text-lg font-semibold text-foreground">Input Validation</h3>
+          <div className="max-h-40 overflow-y-auto space-y-1">
+            {processedIps.filter(ip => !ip.isValid).map((ip, index) => (
+              <div
+                key={index}
+                className="text-sm p-2 rounded bg-red-50 text-red-800 border border-red-200"
+              >
+                <div className="font-mono">
+                  {ip.original} → {ip.normalized}
                 </div>
-              ))}
-            </div>
+                <div className="text-xs mt-1">Invalid format</div>
+              </div>
+            ))}
+            {processedIps.filter(ip => !ip.isValid).length === 0 && processedIps.length > 0 && (
+              <div className="text-green-600 text-sm p-4 text-center">
+                All entries are valid ✓
+              </div>
+            )}
+            {processedIps.length === 0 && (
+              <div className="text-muted-foreground text-sm p-4 text-center">
+                No data processed yet
+              </div>
+            )}
+          </div>
+        </div>
           </CardContent>
         </Card>
       )}

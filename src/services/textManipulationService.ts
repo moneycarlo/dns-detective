@@ -1,13 +1,15 @@
 import { TextManipulationOptions, DelimiterType, QuoteType, BracketType } from '@/types/text';
 
-export const getDelimiterCharacter = (delimiter: DelimiterType): string => {
+export const getDelimiterCharacter = (delimiter: DelimiterType, customDelimiter?: string): string => {
   switch (delimiter) {
+    case 'none': return '';
     case 'comma': return ',';
     case 'semicolon': return ';';
     case 'pipe': return '|';
     case 'space': return ' ';
     case 'newline': return '\n';
     case 'tab': return '\t';
+    case 'custom': return customDelimiter || ',';
     default: return ',';
   }
 };
@@ -31,7 +33,7 @@ export const getBracketCharacters = (bracket: BracketType): { open: string; clos
   }
 };
 
-export const processTextInput = (input: string, options: TextManipulationOptions): string => {
+export const processTextInput = (input: string, options: TextManipulationOptions, customDelimiter?: string): string => {
   if (!input.trim()) return '';
 
   // Split input into lines
@@ -53,7 +55,7 @@ export const processTextInput = (input: string, options: TextManipulationOptions
   if (lines.length === 0) return '';
 
   // Apply formatting to each line
-  const delimiter = getDelimiterCharacter(options.delimiter);
+  const delimiter = getDelimiterCharacter(options.delimiter, customDelimiter);
   const quote = getQuoteCharacter(options.quotes);
   const brackets = getBracketCharacters(options.brackets);
 
@@ -76,6 +78,8 @@ export const processTextInput = (input: string, options: TextManipulationOptions
   // Join with delimiter
   if (options.delimiter === 'newline') {
     return formattedLines.join('\n');
+  } else if (options.delimiter === 'none') {
+    return formattedLines.join('');
   } else {
     return formattedLines.join(delimiter + ' ');
   }
@@ -89,7 +93,7 @@ date
 elderberry`;
 };
 
-export const formatPreviewResult = (options: TextManipulationOptions): string => {
+export const formatPreviewResult = (options: TextManipulationOptions, customDelimiter?: string): string => {
   const sampleInput = generatePreviewText();
-  return processTextInput(sampleInput, options);
+  return processTextInput(sampleInput, options, customDelimiter);
 };
