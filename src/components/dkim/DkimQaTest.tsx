@@ -21,9 +21,9 @@ export const DkimQaTest: React.FC = () => {
       name: 'Good DKIM Record',
       entry: {
         id: 'test-good',
-        selector: 'scph1122',
-        domain: 'email.allrecipes.com',
-        originalInput: 'scph1122:email.allrecipes.com'
+        selector: 'scph1020',
+        domain: 'email.domain.com',
+        originalInput: 'scph1122:email.domain.com'
       },
       expectedValid: true
     },
@@ -32,8 +32,8 @@ export const DkimQaTest: React.FC = () => {
       entry: {
         id: 'test-bad',
         selector: 'scph1123',
-        domain: 'xmail.allrecipes.com',
-        originalInput: 'scph1123:xmail.allrecipes.com'
+        domain: 'xmail.domain.com',
+        originalInput: 'scph1123:xmail.domain.com'
       },
       expectedValid: false
     },
@@ -41,9 +41,9 @@ export const DkimQaTest: React.FC = () => {
       name: 'Entire String Format',
       entry: {
         id: 'test-entire',
-        selector: 'scph1122',
-        domain: 'email.allrecipes.com',
-        originalInput: 'scph1122._domainkey.email.allrecipes.com'
+        selector: 'scph1022',
+        domain: 'email.domainski.com',
+        originalInput: 'scph1022._domainkey.email.sendingdomain.com'
       },
       expectedValid: true
     }
