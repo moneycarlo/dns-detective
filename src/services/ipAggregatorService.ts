@@ -1,9 +1,9 @@
 import { ProcessedIp, AggregatedRange, OutputFormat } from '@/types/ip';
 
-// Convert IP address to 32-bit integer
+// Convert IP address to 32-bit unsigned integer
 export const ipToInt = (ip: string): number => {
   const parts = ip.split('.').map(Number);
-  return (parts[0] << 24) + (parts[1] << 16) + (parts[2] << 8) + parts[3];
+  return ((parts[0] << 24) | (parts[1] << 16) | (parts[2] << 8) | parts[3]) >>> 0;
 };
 
 // Convert 32-bit integer to IP address
@@ -175,44 +175,27 @@ export const aggregateRanges = (processed: ProcessedIp[]): AggregatedRange[] => 
   return aggregated;
 };
 
-// Convert IP range to CIDR notation with proper algorithm
+// Convert IP range to CIDR notation using canonical algorithm
 export const rangeToCidr = (startInt: number, endInt: number): string[] => {
   const cidrs: string[] = [];
-  let start = startInt;
+  let start = startInt >>> 0; // Ensure unsigned
+  const end = endInt >>> 0;   // Ensure unsigned
   
-  while (start <= endInt) {
-    // Find the largest power of 2 that fits
-    let maxSize = endInt - start + 1;
-    let size = 1;
+  while (start <= end) {
+    // Find the lowest set bit (alignment constraint)
+    const alignmentBits = start === 0 ? 32 : Math.floor(Math.log2(start & -start));
     
-    // Find the largest block size that:
-    // 1. Is a power of 2
-    // 2. Fits within the remaining range
-    // 3. Starts at a boundary that's aligned to that block size
-    while (size <= maxSize && (size * 2) <= maxSize && (start % (size * 2)) === 0) {
-      size *= 2;
-    }
+    // Find the remaining length
+    const remainingLength = end - start + 1;
+    const maxLengthBits = remainingLength === 0 ? 0 : Math.floor(Math.log2(remainingLength));
     
-    // Convert size to prefix length
-    const prefixLength = 32 - Math.log2(size);
+    // Use the smaller of alignment and remaining length
+    const bits = Math.min(alignmentBits, maxLengthBits);
+    const blockSize = 1 << bits;
+    const prefixLength = 32 - bits;
     
-    // Verify this block fits exactly
-    const blockEnd = start + size - 1;
-    if (blockEnd > endInt) {
-      // Reduce size to fit
-      size = 1;
-      while (start + size - 1 <= endInt && (start % size) === 0) {
-        if (size * 2 <= (endInt - start + 1) && (start % (size * 2)) === 0) {
-          size *= 2;
-        } else {
-          break;
-        }
-      }
-    }
-    
-    const prefix = 32 - Math.log2(size);
-    cidrs.push(`${intToIp(start)}/${prefix}`);
-    start += size;
+    cidrs.push(`${intToIp(start)}/${prefixLength}`);
+    start = (start + blockSize) >>> 0; // Ensure unsigned arithmetic
   }
   
   return cidrs;

@@ -23,6 +23,7 @@ export const IpAggregatorResults: React.FC<IpAggregatorResultsProps> = ({
 }) => {
   const validCount = processedIps.filter(ip => ip.isValid).length;
   const invalidCount = processedIps.filter(ip => !ip.isValid).length;
+  const invalidInputs = processedIps.filter(ip => !ip.isValid);
   const totalIpCount = aggregatedRanges.reduce((sum, range) => sum + range.count, 0);
 
   const handleCopyToClipboard = async () => {
@@ -89,31 +90,25 @@ export const IpAggregatorResults: React.FC<IpAggregatorResultsProps> = ({
             </CardDescription>
           </CardHeader>
           <CardContent>
-        <div className="space-y-2">
-          <h3 className="text-lg font-semibold text-foreground">Input Validation</h3>
-          <div className="max-h-40 overflow-y-auto space-y-1">
-            {processedIps.filter(ip => !ip.isValid).map((ip, index) => (
-              <div
-                key={index}
-                className="text-sm p-2 rounded bg-red-50 text-red-800 border border-red-200"
-              >
-                <div className="font-mono">
-                  {ip.original} → {ip.normalized}
-                </div>
-                <div className="text-xs mt-1">Invalid format</div>
-              </div>
-            ))}
-            {processedIps.filter(ip => !ip.isValid).length === 0 && processedIps.length > 0 && (
-              <div className="text-green-600 text-sm p-4 text-center">
-                All entries are valid ✓
-              </div>
-            )}
-            {processedIps.length === 0 && (
-              <div className="text-muted-foreground text-sm p-4 text-center">
-                No data processed yet
-              </div>
-            )}
+        <div className="space-y-4">
+          <div className="text-center text-sm text-muted-foreground">
+            <p><strong>Only invalid entries are shown below</strong></p>
           </div>
+          
+          {invalidInputs.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>✅ All entries are valid</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {invalidInputs.map((input, index) => (
+                <div key={index} className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
+                  <span className="font-mono text-sm text-destructive">{input.original}</span>
+                  <span className="text-xs text-destructive font-medium">Invalid</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
           </CardContent>
         </Card>

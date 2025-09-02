@@ -1,6 +1,10 @@
 
 import { DnsResponse, queryDns } from './dnsQuery';
 
+export interface BimiSettings {
+  useProxy: boolean;
+}
+
 export interface BIMIParseResult {
   logoUrl: string | null;
   certificateUrl: string | null;
@@ -165,7 +169,7 @@ const getCertDetailsFromPem = (pemText: string): {
   }
 };
 
-export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> => {
+export const parseBIMIRecord = async (record: string, settings: BimiSettings = { useProxy: false }): Promise<BIMIParseResult> => {
   const result: BIMIParseResult = { 
     logoUrl: null, 
     certificateUrl: null, 
@@ -195,14 +199,30 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
     try {
       console.log("Fetching certificate from:", result.certificateUrl);
       
-      const response = await fetch(result.certificateUrl, {
-        method: 'GET',
-        mode: 'cors',
-        headers: {
-          'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
-          'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
-        }
-      });
+      let response: Response;
+      
+      if (settings.useProxy) {
+        // Use Supabase Edge Function proxy (if available)
+        console.warn('Proxy mode requested but Supabase integration not available. Falling back to direct fetch.');
+        response = await fetch(result.certificateUrl, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
+          }
+        });
+      } else {
+        // Direct fetch (may fail due to CORS)
+        response = await fetch(result.certificateUrl, {
+          method: 'GET',
+          mode: 'cors',
+          headers: {
+            'Accept': 'application/x-pem-file, application/x-x509-ca-cert, text/plain, */*',
+            'User-Agent': 'Mozilla/5.0 (compatible; BIMI-Checker/1.0)'
+          }
+        });
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -228,7 +248,10 @@ export const parseBIMIRecord = async (record: string): Promise<BIMIParseResult> 
       
       // Check if it's a CORS or network error
       if (errorMessage.includes('Failed to fetch') || errorMessage.includes('CORS') || errorMessage.includes('Network')) {
-        result.errors.push("Certificate URL is blocked by CORS policy. Unable to verify certificate details in browser environment.");
+        const corsMessage = settings.useProxy 
+          ? "Certificate URL is blocked by CORS policy. Proxy mode is enabled but Supabase integration is not available."
+          : "Certificate URL is blocked by CORS policy. Try enabling proxy mode in BIMI settings.";
+        result.errors.push(corsMessage);
       } else {
         result.errors.push(`Error fetching BIMI certificate: ${errorMessage}`);
       }

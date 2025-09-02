@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { DkimInput } from '@/components/dkim/DkimInput';
 import { DkimResults } from '@/components/dkim/DkimResults';
 import { DkimExport } from '@/components/dkim/DkimExport';
+import { DkimQaTest } from '@/components/dkim/DkimQaTest';
 import { useDkimLookup } from '@/hooks/useDkimLookup';
 import { FileText, Key } from 'lucide-react';
 
@@ -53,6 +54,9 @@ const DkimLookup = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* QA Test Section */}
+        <DkimQaTest />
 
         {results.length > 0 && (
           <DkimResults results={results} />
