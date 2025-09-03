@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { OutputFormat } from '@/types/ip';
 import { Play, RotateCcw } from 'lucide-react';
-import { IpPrefillButton } from './IpPrefillButton';
+
 
 interface IpAggregatorInputProps {
   input: string;
@@ -77,7 +77,7 @@ export const IpAggregatorInput: React.FC<IpAggregatorInputProps> = ({
           </Select>
         </div>
 
-        <IpPrefillButton onPrefill={onInputChange} />
+        
 
         <div className="flex gap-2">
           <Button 

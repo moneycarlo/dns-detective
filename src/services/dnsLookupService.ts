@@ -13,11 +13,46 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
     websiteLogo: `https://logo.clearbit.com/${domain}`,
   };
 
-  if (lookupType === 'ALL' || lookupType === 'SPF') {
+  // Check for CNAME record first
+  let isCname = false;
+  try {
+    const cnameResponse = await queryDns(domain, 'CNAME');
+    if (cnameResponse.Answer && cnameResponse.Answer.length > 0) {
+      isCname = true;
+      result.spf.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
+      result.dmarc.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
+      result.bimi.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
+      
+      // Check for conflicting TXT records
+      try {
+        const txtResponse = await queryDns(domain, 'TXT');
+        if (txtResponse.Answer && txtResponse.Answer.length > 0) {
+          result.spf.errors.push('⚠️ CNAME conflict: TXT records found alongside CNAME. This violates DNS standards.');
+          result.dmarc.errors.push('⚠️ CNAME conflict: TXT records found alongside CNAME. This violates DNS standards.');
+        }
+      } catch (e) {
+        // TXT query failed, which is expected if CNAME is properly configured
+      }
+    }
+  } catch (e) {
+    // No CNAME record found, continue with normal processing
+  }
+
+  if (lookupType === 'SPF' || lookupType === 'CNAME') {
     try {
+      // Check for deprecated SPF record type first
+      try {
+        const spfTypeResponse = await queryDns(domain, 'SPF');
+        if (spfTypeResponse.Answer && spfTypeResponse.Answer.length > 0) {
+          result.spf.errors.push('🚨 DEPRECATED: SPF record type found. Use TXT records instead. SPF record type is obsolete (RFC 7208).');
+        }
+      } catch (e) {
+        // No SPF record type found, which is good
+      }
+
       const response = await queryDns(domain, 'TXT');
       const spfRecord = response.Answer?.find(a => a.data.includes('v=spf1'))?.data.replace(/"/g, '');
-      if (spfRecord) {
+      if (spfRecord && !isCname) {
         result.spf.record = spfRecord;
         const lookupData = await countTotalSPFLookups(spfRecord, domain);
         const parsedSpf = parseSPFRecord(spfRecord);
@@ -27,33 +62,52 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
         if (result.spf.exceedsLookupLimit) {
           result.spf.errors.push(`Exceeds 10 DNS lookup limit (${result.spf.lookupCount}).`);
         }
-      } else { result.spf.errors.push('No SPF record found.'); }
-    } catch (e) { result.spf.errors.push(e instanceof Error ? e.message : 'Failed to query/parse SPF record.'); }
+      } else if (!isCname) { 
+        result.spf.errors.push('No SPF record found.'); 
+      }
+    } catch (e) { 
+      if (!isCname) {
+        result.spf.errors.push(e instanceof Error ? e.message : 'Failed to query/parse SPF record.'); 
+      }
+    }
   }
 
-  if (lookupType === 'ALL' || lookupType === 'DMARC') {
+  if (lookupType === 'DMARC' || lookupType === 'CNAME') {
      try {
       const response = await queryDns(`_dmarc.${domain}`, 'TXT');
       const dmarcRecord = response.Answer?.find(a => a.data.includes('v=DMARC1'))?.data.replace(/"/g, '');
-      if (dmarcRecord) {
+      if (dmarcRecord && !isCname) {
         result.dmarc.record = dmarcRecord;
         const parsed = await parseDMARCRecord(dmarcRecord, domain);
         result.dmarc = { ...result.dmarc, ...parsed, valid: parsed.errors.length === 0 };
-      } else { result.dmarc.errors.push('No DMARC record found.'); }
-    } catch (e) { result.dmarc.errors.push(e instanceof Error ? e.message : 'Failed to query/parse DMARC record.'); }
+      } else if (!isCname) { 
+        result.dmarc.errors.push('No DMARC record found.'); 
+      }
+    } catch (e) { 
+      if (!isCname) {
+        result.dmarc.errors.push(e instanceof Error ? e.message : 'Failed to query/parse DMARC record.'); 
+      }
+    }
   }
 
-  if (lookupType === 'ALL' || lookupType === 'BIMI') {
+  if (lookupType === 'BIMI' || lookupType === 'CNAME') {
     try {
       const response = await queryDns(`default._bimi.${domain}`, 'TXT');
       const bimiRecord = response.Answer?.find(a => a.data.includes('v=BIMI1'))?.data.replace(/"/g, '');
-      if (bimiRecord) {
+      if (bimiRecord && !isCname) {
         result.bimi.record = bimiRecord;
         const parsed = await parseBIMIRecord(bimiRecord);
         result.bimi = { ...result.bimi, ...parsed, valid: parsed.errors.length === 0 };
-      } else { result.bimi.errors.push('No BIMI record found.'); }
-    } catch (e) { result.bimi.errors.push(e instanceof Error ? e.message : 'Failed to query/parse BIMI record.'); }
+      } else if (!isCname) { 
+        result.bimi.errors.push('No BIMI record found.'); 
+      }
+    } catch (e) { 
+      if (!isCname) {
+        result.bimi.errors.push(e instanceof Error ? e.message : 'Failed to query/parse BIMI record.'); 
+      }
+    }
   }
+
   return result;
 };
 

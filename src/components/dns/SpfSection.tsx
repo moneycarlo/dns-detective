@@ -21,7 +21,20 @@ export const SpfSection: React.FC<SpfSectionProps> = ({ result }) => {
         <div className="mt-2 space-y-2">
           <code className="block bg-gray-100 p-2 rounded-md text-sm break-all">{result.spf.record}</code>
           <div className="text-sm font-medium">
-            DNS Lookups: <Badge variant={result.spf.exceedsLookupLimit ? 'destructive' : 'secondary'}>{result.spf.lookupCount} / 10</Badge>
+            Total Lookups: <Badge 
+              variant={
+                result.spf.lookupCount >= 10 ? 'destructive' : 
+                result.spf.lookupCount >= 8 ? 'default' : 
+                'secondary'
+              } 
+              className={
+                result.spf.lookupCount >= 10 ? 'bg-red-600 text-white' :
+                result.spf.lookupCount >= 8 ? 'bg-yellow-600 text-white' :
+                ''
+              }
+            >
+              {result.spf.lookupCount} / 10
+            </Badge>
           </div>
           {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && <LookupDetails details={result.spf.lookupDetails} />}
           {result.spf.errors.map((e,i) => 

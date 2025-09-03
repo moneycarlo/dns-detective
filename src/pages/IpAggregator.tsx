@@ -3,6 +3,7 @@ import { IpAggregatorInput } from '@/components/ip/IpAggregatorInput';
 import { IpAggregatorResults } from '@/components/ip/IpAggregatorResults';
 import { ProcessedIp, AggregatedRange, OutputFormat } from '@/types/ip';
 import { processIpInput, aggregateRanges, formatOutput } from '@/services/ipAggregatorService';
+import { IpValidationResults } from '@/components/ip/IpValidationResults';
 import { toast } from 'sonner';
 import { Shield } from 'lucide-react';
 
@@ -72,6 +73,30 @@ const IpAggregator: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Summary Statistics - Centered above both panels */}
+        {processedIps.length > 0 && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center space-x-8 bg-card rounded-lg border p-6 shadow-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{processedIps.filter(ip => ip.isValid).length}</div>
+                <div className="text-sm text-muted-foreground">Valid Entries</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{processedIps.filter(ip => !ip.isValid).length}</div>
+                <div className="text-sm text-muted-foreground">Invalid Entries</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{aggregatedRanges.length}</div>
+                <div className="text-sm text-muted-foreground">Aggregated Ranges</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{aggregatedRanges.reduce((sum, range) => sum + range.count, 0).toLocaleString()}</div>
+                <div className="text-sm text-muted-foreground">Total IP Addresses</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Shield className="h-8 w-8 text-primary" />
@@ -96,13 +121,23 @@ const IpAggregator: React.FC = () => {
             />
           </div>
           
-          <div>
-            <IpAggregatorResults
-              processedIps={processedIps}
-              aggregatedRanges={aggregatedRanges}
-              output={output}
-              outputFormat={outputFormat}
-            />
+          <div className="space-y-6">
+            {/* Aggregated Results */}
+            {output && (
+              <IpAggregatorResults
+                processedIps={processedIps}
+                aggregatedRanges={aggregatedRanges}
+                output={output}
+                outputFormat={outputFormat}
+              />
+            )}
+            
+            {/* Input Validation Results - Moved below aggregated results */}
+            {processedIps.length > 0 && processedIps.some(ip => !ip.isValid) && (
+              <div className="mt-6">
+                <IpValidationResults processedIps={processedIps} />
+              </div>
+            )}
           </div>
         </div>
       </main>

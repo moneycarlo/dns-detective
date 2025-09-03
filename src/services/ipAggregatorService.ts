@@ -22,7 +22,9 @@ export const isValidIp = (ip: string): boolean => {
   if (parts.length !== 4) return false;
   
   for (const part of parts) {
-    const num = parseInt(part);
+    // Check if part contains only digits
+    if (!/^\d+$/.test(part)) return false;
+    const num = parseInt(part, 10);
     if (isNaN(num) || num < 0 || num > 255) return false;
   }
   return true;

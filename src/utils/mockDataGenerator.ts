@@ -89,7 +89,7 @@ export const generateMockResult = (domain: string): DomainResult => {
   
   return {
     id: crypto.randomUUID(),
-    lookupType: 'ALL',
+    lookupType: 'SPF',
     domain,
     spf: {
       record: hasSpf ? `v=spf1 include:_spf.google.com include:spf.protection.outlook.com include:_spf.salesforce.com ~all` : null,

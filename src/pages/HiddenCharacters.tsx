@@ -52,6 +52,30 @@ const HiddenCharacters: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Statistics Summary - Centered above both panels */}
+        {analysis && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center space-x-8 bg-card rounded-lg border p-6 shadow-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{analysis.statistics.totalChars}</div>
+                <div className="text-sm text-muted-foreground">Total Characters</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{analysis.statistics.visibleChars}</div>
+                <div className="text-sm text-muted-foreground">Visible</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-red-600">{analysis.statistics.invisibleChars}</div>
+                <div className="text-sm text-muted-foreground">Invisible</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-600">{analysis.statistics.controlChars}</div>
+                <div className="text-sm text-muted-foreground">Control</div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Eye className="h-8 w-8 text-primary" />

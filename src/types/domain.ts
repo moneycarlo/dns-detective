@@ -1,5 +1,5 @@
 
-export type LookupType = 'ALL' | 'SPF' | 'DMARC' | 'BIMI';
+export type LookupType = 'SPF' | 'DMARC' | 'BIMI' | 'CNAME';
 
 export interface LookupDetail {
   number: number;

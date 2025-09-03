@@ -52,17 +52,17 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
           </TabsTrigger>
         </TabsList>
         <TabsContent value="spf" className="mt-4">
-          {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'SPF').map(result => 
+          {results.filter(r => r.lookupType === 'SPF' || r.lookupType === 'CNAME').map(result => 
             renderDomainCard(result, <SpfSection result={result} />)
           )}
         </TabsContent>
         <TabsContent value="dmarc" className="mt-4">
-          {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'DMARC').map(result => 
+          {results.filter(r => r.lookupType === 'DMARC' || r.lookupType === 'CNAME').map(result => 
             renderDomainCard(result, <DmarcSection result={result} />)
           )}
         </TabsContent>
         <TabsContent value="bimi" className="mt-4">
-          {results.filter(r => r.lookupType === 'ALL' || r.lookupType === 'BIMI').map(result => 
+          {results.filter(r => r.lookupType === 'BIMI' || r.lookupType === 'CNAME').map(result => 
             renderDomainCard(result, <BimiSection result={result} />)
           )}
         </TabsContent>

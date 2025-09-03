@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Shield, Key, Network, Type, Eye } from 'lucide-react';
+import { Shield, Key, Network, Type, Eye, Code } from 'lucide-react';
 
 export const Navigation: React.FC = () => {
   const location = useLocation();
@@ -61,14 +61,25 @@ export const Navigation: React.FC = () => {
                 </Link>
               </Button>
               
-              <Button
+              <Button 
+                variant={location.pathname === "/hidden-characters" ? "default" : "ghost"} 
                 asChild
-                variant={location.pathname === '/hidden-characters' ? 'default' : 'ghost'}
                 size="sm"
               >
                 <Link to="/hidden-characters" className="flex items-center space-x-2">
                   <Eye className="h-4 w-4" />
                   <span>Hidden Characters</span>
+                </Link>
+              </Button>
+              
+              <Button 
+                variant={location.pathname === "/html-formatter" ? "default" : "ghost"} 
+                asChild
+                size="sm"
+              >
+                <Link to="/html-formatter" className="flex items-center space-x-2">
+                  <Code className="h-4 w-4" />
+                  <span>HTML Formatter</span>
                 </Link>
               </Button>
             </div>

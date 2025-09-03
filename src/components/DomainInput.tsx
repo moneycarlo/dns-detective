@@ -15,7 +15,7 @@ interface DomainInputProps {
 
 export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading }) => {
   const [domainText, setDomainText] = useState('');
-  const [lookupType, setLookupType] = useState<LookupType>('ALL');
+  const [lookupType, setLookupType] = useState<LookupType>('SPF');
 
   const handleLookupClick = () => {
     const domainList = domainText
@@ -44,7 +44,7 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
         value={domainText}
         onChange={(e) => setDomainText(e.target.value)}
         disabled={isLoading}
-        className="min-h-[120px] resize-none"
+        className="min-h-[120px] resize-none w-1/2"
         rows={6}
       />
       <div className="flex gap-2">
@@ -53,10 +53,10 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
             <SelectValue placeholder="Select type" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All</SelectItem>
             <SelectItem value="SPF">SPF</SelectItem>
             <SelectItem value="DMARC">DMARC</SelectItem>
             <SelectItem value="BIMI">BIMI</SelectItem>
+            <SelectItem value="CNAME">CNAME</SelectItem>
           </SelectContent>
         </Select>
         <Button onClick={handleLookupClick} disabled={isLoading || domainCount === 0 || domainCount > 10} className="w-full">

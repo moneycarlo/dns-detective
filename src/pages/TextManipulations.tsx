@@ -75,6 +75,28 @@ const TextManipulations: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Summary Statistics - Centered above both panels */}
+        {(originalCount > 0 || processedCount > 0) && (
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center space-x-8 bg-card rounded-lg border p-6 shadow-sm">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{originalCount}</div>
+                <div className="text-sm text-muted-foreground">Original Lines</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-600">{processedCount}</div>
+                <div className="text-sm text-muted-foreground">Processed Items</div>
+              </div>
+              {isPreview && (
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-purple-600">🔍</div>
+                  <div className="text-sm text-muted-foreground">Preview Mode</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Type className="h-8 w-8 text-primary" />

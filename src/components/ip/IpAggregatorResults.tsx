@@ -49,112 +49,43 @@ export const IpAggregatorResults: React.FC<IpAggregatorResultsProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Processing Summary</CardTitle>
-          <CardDescription>
-            Overview of input processing and aggregation results
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{validCount}</div>
-              <div className="text-sm text-muted-foreground">Valid Entries</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{invalidCount}</div>
-              <div className="text-sm text-muted-foreground">Invalid Entries</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{aggregatedRanges.length}</div>
-              <div className="text-sm text-muted-foreground">Aggregated Ranges</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{totalIpCount.toLocaleString()}</div>
-              <div className="text-sm text-muted-foreground">Total IP Addresses</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Input Validation Results */}
-      {processedIps.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Input Validation</CardTitle>
-            <CardDescription>
-              Status of each input line and how it was processed
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-        <div className="space-y-4">
-          <div className="text-center text-sm text-muted-foreground">
-            <p><strong>Only invalid entries are shown below</strong></p>
-          </div>
-          
-          {invalidInputs.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <p>✅ All entries are valid</p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {invalidInputs.map((input, index) => (
-                <div key={index} className="flex items-center justify-between p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                  <span className="font-mono text-sm text-destructive">{input.original}</span>
-                  <span className="text-xs text-destructive font-medium">Invalid</span>
-                </div>
-              ))}
-            </div>
-          )}
+    <Card>
+      <CardHeader>
+        <CardTitle>Aggregated Results</CardTitle>
+        <CardDescription>
+          Optimized IP ranges in {outputFormat.toUpperCase()} format
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex gap-2">
+          <Button onClick={handleCopyToClipboard} variant="outline" size="sm">
+            <Copy className="h-4 w-4 mr-2" />
+            Copy to Clipboard
+          </Button>
+          <Button onClick={handleDownload} variant="outline" size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Download Results
+          </Button>
         </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Aggregated Results */}
-      {output && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Aggregated Results</CardTitle>
-            <CardDescription>
-              Optimized IP ranges in {outputFormat.toUpperCase()} format
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Button onClick={handleCopyToClipboard} variant="outline" size="sm">
-                <Copy className="h-4 w-4 mr-2" />
-                Copy to Clipboard
-              </Button>
-              <Button onClick={handleDownload} variant="outline" size="sm">
-                <Download className="h-4 w-4 mr-2" />
-                Download Results
-              </Button>
-            </div>
-            
-            <Separator />
-            
-            <Textarea
-              value={output}
-              readOnly
-              className="min-h-[300px] font-mono text-sm"
-              placeholder="Processed results will appear here..."
-            />
-            
-            {aggregatedRanges.length > 0 && (
-              <div className="text-sm text-muted-foreground">
-                <p>
-                  Results contain {aggregatedRanges.length} aggregated range(s) covering{' '}
-                  {totalIpCount.toLocaleString()} IP addresses in total.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-    </div>
+        
+        <Separator />
+        
+        <Textarea
+          value={output}
+          readOnly
+          className="min-h-[300px] font-mono text-sm"
+          placeholder="Processed results will appear here..."
+        />
+        
+        {aggregatedRanges.length > 0 && (
+          <div className="text-sm text-muted-foreground">
+            <p>
+              Results contain {aggregatedRanges.length} aggregated range(s) covering{' '}
+              {totalIpCount.toLocaleString()} IP addresses in total.
+            </p>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
