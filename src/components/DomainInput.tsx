@@ -59,7 +59,7 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
             <SelectItem value="CNAME">CNAME</SelectItem>
           </SelectContent>
         </Select>
-        <Button onClick={handleLookupClick} disabled={isLoading || domainCount === 0 || domainCount > 10} className="w-full">
+        <Button onClick={handleLookupClick} disabled={isLoading || domainCount === 0 || domainCount > 10} className="w-full" size="sm">
           {isLoading ? 'Analyzing...' : <><Search className="h-4 w-4 mr-2" />Start DNS Lookup</>}
         </Button>
       </div>
