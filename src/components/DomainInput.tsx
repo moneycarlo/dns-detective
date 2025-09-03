@@ -47,7 +47,7 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
         className="min-h-[120px] resize-none w-1/2"
         rows={6}
       />
-      <div className="flex gap-2">
+      <div className="flex gap-2 w-1/2">
         <Select value={lookupType} onValueChange={(value) => setLookupType(value as LookupType)}>
           <SelectTrigger className="w-[120px]">
             <SelectValue placeholder="Select type" />
