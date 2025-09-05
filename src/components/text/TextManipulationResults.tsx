@@ -44,34 +44,6 @@ export const TextManipulationResults: React.FC<TextManipulationResultsProps> = (
 
   return (
     <div className="space-y-6">
-      {/* Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Processing Summary
-            {isPreview && <Badge variant="secondary" className="ml-2">Preview</Badge>}
-          </CardTitle>
-          <CardDescription>
-            {isPreview 
-              ? 'Preview of how your data will be formatted with current settings'
-              : 'Results of text manipulation and formatting'
-            }
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{originalCount}</div>
-              <div className="text-sm text-muted-foreground">Original Lines</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{processedCount}</div>
-              <div className="text-sm text-muted-foreground">Processed Items</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Results */}
       {output && (
         <Card>

@@ -43,37 +43,6 @@ export const HiddenCharactersResults: React.FC<HiddenCharactersResultsProps> = (
 
   return (
     <div className="space-y-6">
-      {/* Statistics */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Statistics</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-foreground">{statistics.totalChars}</div>
-              <div className="text-sm text-muted-foreground">Total</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">{statistics.visibleChars}</div>
-              <div className="text-sm text-muted-foreground">Visible</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-red-600">{statistics.invisibleChars}</div>
-              <div className="text-sm text-muted-foreground">Invisible</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{statistics.whitespaceChars}</div>
-              <div className="text-sm text-muted-foreground">Whitespace</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{statistics.controlChars}</div>
-              <div className="text-sm text-muted-foreground">Control</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Annotated Text */}
       <Card>
         <CardHeader>
