@@ -20,14 +20,37 @@ const VALID_DMARC_TAGS = new Set(['v', 'p', 'sp', 'rua', 'ruf', 'fo', 'adkim', '
 
 const checkDmarcReportingAuthorization = async (reportingDomain: string, organizationDomain: string): Promise<boolean> => {
   if (reportingDomain === organizationDomain) return true;
+  
+  // First check for specific authorization
   const authorizationDomain = `${organizationDomain}._report._dmarc.${reportingDomain}`;
   try {
     const response = await queryDns(authorizationDomain, 'TXT');
-    return !!response.Answer?.find(a => a.data.includes(`v=DMARC1`));
+    const hasSpecificAuth = !!response.Answer?.find(a => a.data.includes(`v=DMARC1`));
+    if (hasSpecificAuth) return true;
   } catch (error) {
     console.error(`DMARC auth check failed for ${authorizationDomain}:`, error);
-    return false;
   }
+
+  // Check for wildcard records by testing random subdomains
+  const randomTests = [
+    `axsdf4z4ds3s4s._report._dmarc.${reportingDomain}`,
+    `22m3m4n5j6u74uuzxip53ga9._report._dmarc.${reportingDomain}`
+  ];
+
+  for (const testDomain of randomTests) {
+    try {
+      const response = await queryDns(testDomain, 'TXT');
+      if (response.Answer && response.Answer.length > 0) {
+        // Wildcard found - domain accepts all DMARC reports
+        console.log(`Wildcard DMARC authorization detected for ${reportingDomain}`);
+        return true;
+      }
+    } catch (error) {
+      // Expected - no wildcard record
+    }
+  }
+  
+  return false;
 };
 
 export const parseDMARCRecord = async (record: string, domain: string): Promise<DMARCParseResult> => {

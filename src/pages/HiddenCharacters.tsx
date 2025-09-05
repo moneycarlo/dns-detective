@@ -52,6 +52,17 @@ const HiddenCharacters: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Eye className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Hidden Characters</h1>
+          </div>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Decode and view invisible, non-printable Unicode characters hidden inside your text. 
+            Discover zero-width spaces, control characters, and other hidden elements.
+          </p>
+        </div>
+
         {/* Statistics Summary - Centered above both panels */}
         {analysis && (
           <div className="text-center mb-8">
@@ -75,17 +86,6 @@ const HiddenCharacters: React.FC = () => {
             </div>
           </div>
         )}
-
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Eye className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Hidden Characters</h1>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Decode and view invisible, non-printable Unicode characters hidden inside your text. 
-            Discover zero-width spaces, control characters, and other hidden elements.
-          </p>
-        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           <div>

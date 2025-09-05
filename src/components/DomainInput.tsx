@@ -57,6 +57,7 @@ export const DomainInput: React.FC<DomainInputProps> = ({ onLookup, isLoading })
             <SelectItem value="DMARC">DMARC</SelectItem>
             <SelectItem value="BIMI">BIMI</SelectItem>
             <SelectItem value="CNAME">CNAME</SelectItem>
+            <SelectItem value="MX">MX</SelectItem>
           </SelectContent>
         </Select>
         <Button onClick={handleLookupClick} disabled={isLoading || domainCount === 0 || domainCount > 10} className="w-full">

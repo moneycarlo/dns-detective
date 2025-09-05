@@ -2,9 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DomainResult } from '@/types/domain';
-import { Shield, Mail, Image } from 'lucide-react';
+import { Shield, Mail, Image, Server } from 'lucide-react';
 import { SpfSection } from './dns/SpfSection';
 import { DmarcSection } from './dns/DmarcSection';
 import { BimiSection } from './dns/BimiSection';
@@ -33,40 +32,62 @@ export const DnsResults: React.FC<{ results: DomainResult[] }> = ({ results }) =
     </Card>
   );
 
+  const renderSection = (result: DomainResult) => {
+    if (result.lookupType === 'SPF' || (result.lookupType === 'CNAME' && result.spf.record)) {
+      return <SpfSection result={result} />;
+    }
+    if (result.lookupType === 'DMARC' || (result.lookupType === 'CNAME' && result.dmarc.record)) {
+      return <DmarcSection result={result} />;
+    }
+    if (result.lookupType === 'BIMI' || (result.lookupType === 'CNAME' && result.bimi.record)) {
+      return <BimiSection result={result} />;
+    }
+    if (result.lookupType === 'MX') {
+      return (
+        <div>
+          <h3 className="font-semibold text-lg flex items-center gap-2">
+            <Server size={16}/>
+            MX Records
+          </h3>
+          {result.mx.records.length > 0 ? (
+            <div className="mt-2 space-y-2">
+              {result.mx.records.map((record, index) => (
+                <div key={index} className="flex items-center gap-2 bg-gray-100 p-2 rounded-md text-sm">
+                  <Badge variant="outline">{record.priority}</Badge>
+                  <code>{record.exchange}</code>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="mt-2 text-gray-600">{result.mx.errors[0] || 'No MX records found.'}</div>
+          )}
+        </div>
+      );
+    }
+    if (result.lookupType === 'CNAME') {
+      return (
+        <div className="space-y-4">
+          <div>
+            <h3 className="font-semibold text-lg">CNAME Record</h3>
+            <p className="text-gray-600 mt-2">This domain has a CNAME record and will inherit DNS records from its target.</p>
+          </div>
+          {result.spf.record && <SpfSection result={result} />}
+          {result.dmarc.record && <DmarcSection result={result} />}
+          {result.bimi.record && <BimiSection result={result} />}
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-center">Lookup History</h2>
-      <Tabs defaultValue="spf" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 bg-gray-50">
-          <TabsTrigger value="spf" className="flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            SPF
-          </TabsTrigger>
-          <TabsTrigger value="dmarc" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            DMARC
-          </TabsTrigger>
-          <TabsTrigger value="bimi" className="flex items-center gap-2">
-            <Image className="h-4 w-4" />
-            BIMI
-          </TabsTrigger>
-        </TabsList>
-        <TabsContent value="spf" className="mt-4">
-          {results.filter(r => r.lookupType === 'SPF' || r.lookupType === 'CNAME').map(result => 
-            renderDomainCard(result, <SpfSection result={result} />)
-          )}
-        </TabsContent>
-        <TabsContent value="dmarc" className="mt-4">
-          {results.filter(r => r.lookupType === 'DMARC' || r.lookupType === 'CNAME').map(result => 
-            renderDomainCard(result, <DmarcSection result={result} />)
-          )}
-        </TabsContent>
-        <TabsContent value="bimi" className="mt-4">
-          {results.filter(r => r.lookupType === 'BIMI' || r.lookupType === 'CNAME').map(result => 
-            renderDomainCard(result, <BimiSection result={result} />)
-          )}
-        </TabsContent>
-      </Tabs>
+      <div className="space-y-4">
+        {results.map(result => 
+          renderDomainCard(result, renderSection(result))
+        )}
+      </div>
     </div>
   );
 };

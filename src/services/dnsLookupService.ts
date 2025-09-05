@@ -7,21 +7,22 @@ import { parseBIMIRecord } from './bimiParser';
 export const performActualDnsLookup = async (domain: string, lookupType: LookupType): Promise<DomainResult> => {
   const result: DomainResult = {
     id: crypto.randomUUID(), lookupType, domain, status: 'completed',
-    spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, exceedsLookupLimit: false, lookupDetails: [] },
+    spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, directLookupCount: 0, nestedLookupCount: 0, exceedsLookupLimit: false, lookupDetails: [], isCnameInherited: false },
     dmarc: { record: null, valid: false, policy: '', subdomainPolicy: '', percentage: 100, adkim: 'r', aspf: 'r', fo: '0', rf: 'afrf', ri: '86400', reportingEmails: [], ruaEmails: [], rufEmails: [], errors: [], warnings: [] },
     bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateIssueDate: null, certificateAuthority: null, certificateIssuer: null, errors: [] },
+    mx: { records: [], errors: [] },
     websiteLogo: `https://logo.clearbit.com/${domain}`,
   };
 
   // Check for CNAME record first
   let isCname = false;
+  let cnameTarget = '';
   try {
     const cnameResponse = await queryDns(domain, 'CNAME');
     if (cnameResponse.Answer && cnameResponse.Answer.length > 0) {
       isCname = true;
-      result.spf.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
-      result.dmarc.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
-      result.bimi.errors.push('Domain has CNAME record. CNAMEs cannot coexist with other record types at the same name.');
+      cnameTarget = cnameResponse.Answer[0].data;
+      result.spf.isCnameInherited = true;
       
       // Check for conflicting TXT records
       try {
@@ -29,6 +30,7 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
         if (txtResponse.Answer && txtResponse.Answer.length > 0) {
           result.spf.errors.push('⚠️ CNAME conflict: TXT records found alongside CNAME. This violates DNS standards.');
           result.dmarc.errors.push('⚠️ CNAME conflict: TXT records found alongside CNAME. This violates DNS standards.');
+          result.bimi.errors.push('⚠️ CNAME conflict: TXT records found alongside CNAME. This violates DNS standards.');
         }
       } catch (e) {
         // TXT query failed, which is expected if CNAME is properly configured
@@ -50,13 +52,23 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
         // No SPF record type found, which is good
       }
 
-      const response = await queryDns(domain, 'TXT');
+      let queryDomain = domain;
+      if (isCname && cnameTarget) {
+        queryDomain = cnameTarget;
+      }
+
+      const response = await queryDns(queryDomain, 'TXT');
       const spfRecord = response.Answer?.find(a => a.data.includes('v=spf1'))?.data.replace(/"/g, '');
-      if (spfRecord && !isCname) {
+      if (spfRecord) {
         result.spf.record = spfRecord;
-        const lookupData = await countTotalSPFLookups(spfRecord, domain);
+        const lookupData = await countTotalSPFLookups(spfRecord, queryDomain);
         const parsedSpf = parseSPFRecord(spfRecord);
         result.spf = { ...result.spf, ...parsedSpf, ...lookupData, lookupCount: lookupData.lookupCount };
+        
+        // Calculate direct vs nested lookups
+        result.spf.directLookupCount = lookupData.lookupDetails.filter(detail => detail.indent === 0).length;
+        result.spf.nestedLookupCount = lookupData.lookupCount - result.spf.directLookupCount;
+        
         result.spf.exceedsLookupLimit = lookupData.lookupCount > 10;
         result.spf.valid = !result.spf.exceedsLookupLimit;
         if (result.spf.exceedsLookupLimit) {
@@ -108,15 +120,35 @@ export const performActualDnsLookup = async (domain: string, lookupType: LookupT
     }
   }
 
+  if (lookupType === 'MX') {
+    try {
+      const response = await queryDns(domain, 'MX');
+      if (response.Answer && response.Answer.length > 0) {
+        result.mx.records = response.Answer.map(record => {
+          const parts = record.data.split(' ');
+          return {
+            priority: parseInt(parts[0]),
+            exchange: parts[1]
+          };
+        }).sort((a, b) => a.priority - b.priority);
+      } else {
+        result.mx.errors.push('No MX records found.');
+      }
+    } catch (e) {
+      result.mx.errors.push(e instanceof Error ? e.message : 'Failed to query MX records.');
+    }
+  }
+
   return result;
 };
 
 export const performDnsLookup = async (domainList: string[], lookupType: LookupType): Promise<DomainResult[]> => {
   return domainList.map(domain => ({
     id: crypto.randomUUID(), lookupType, domain, status: 'pending',
-    spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, exceedsLookupLimit: false, lookupDetails: [] },
+    spf: { record: null, valid: false, includes: [], redirects: [], mechanisms: [], errors: [], nestedLookups: {}, lookupCount: 0, directLookupCount: 0, nestedLookupCount: 0, exceedsLookupLimit: false, lookupDetails: [], isCnameInherited: false },
     dmarc: { record: null, valid: false, policy: '', subdomainPolicy: '', percentage: 100, adkim: 'r', aspf: 'r', fo: '0', rf: 'afrf', ri: '86400', reportingEmails: [], ruaEmails: [], rufEmails: [], errors: [], warnings: [] },
     bimi: { record: null, valid: false, logoUrl: null, certificateUrl: null, certificateExpiry: null, certificateIssueDate: null, certificateAuthority: null, certificateIssuer: null, errors: [] },
+    mx: { records: [], errors: [] },
     websiteLogo: null,
   }));
 };

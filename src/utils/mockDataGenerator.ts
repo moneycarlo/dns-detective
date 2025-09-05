@@ -100,8 +100,11 @@ export const generateMockResult = (domain: string): DomainResult => {
       errors: spfErrors,
       nestedLookups: nestedLookups,
       lookupCount: spfLookupCount,
+      directLookupCount: hasSpf ? 3 : 0,
+      nestedLookupCount: hasSpf ? spfLookupCount - 3 - 1 : 0, // Total minus direct minus main record
       exceedsLookupLimit: exceedsLimit,
-      lookupDetails: lookupDetails
+      lookupDetails: lookupDetails,
+      isCnameInherited: false,
     },
     dmarc: {
       record: hasDmarc ? `v=DMARC1; p=quarantine; rua=mailto:dmarc@${domain}; ruf=mailto:dmarc@${domain}; pct=100` : null,
@@ -131,7 +134,8 @@ export const generateMockResult = (domain: string): DomainResult => {
       certificateIssuer: hasBimi ? `${domain} Certificate Authority` : null,
       errors: hasBimi ? [] : ['No BIMI record found']
     },
+    mx: { records: [], errors: [] },
     websiteLogo: `https://logo.clearbit.com/${domain}`,
-    status: 'completed'
+    status: 'completed' as const,
   };
 };

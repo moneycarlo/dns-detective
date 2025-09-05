@@ -75,7 +75,18 @@ const TextManipulations: React.FC = () => {
   return (
     <div className="min-h-screen bg-background">
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Summary Statistics - Centered above both panels */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-2 mb-4">
+            <Type className="h-8 w-8 text-primary" />
+            <h1 className="text-3xl font-bold text-foreground">Text Manipulations</h1>
+          </div>
+          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
+            Transform your text data with flexible formatting options. Convert lists to comma-separated values, 
+            add quotes and brackets, remove duplicates, and more.
+          </p>
+        </div>
+
+        {/* Processing Summary - Centered above both panels */}
         {(originalCount > 0 || processedCount > 0) && (
           <div className="text-center mb-8">
             <div className="inline-flex items-center space-x-8 bg-card rounded-lg border p-6 shadow-sm">
@@ -96,17 +107,6 @@ const TextManipulations: React.FC = () => {
             </div>
           </div>
         )}
-
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center space-x-2 mb-4">
-            <Type className="h-8 w-8 text-primary" />
-            <h1 className="text-3xl font-bold text-foreground">Text Manipulations</h1>
-          </div>
-          <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
-            Transform your text data with flexible formatting options. Convert lists to comma-separated values, 
-            add quotes and brackets, remove duplicates, and more.
-          </p>
-        </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           <div>

@@ -33,8 +33,13 @@ export const SpfSection: React.FC<SpfSectionProps> = ({ result }) => {
                 ''
               }
             >
-              {result.spf.lookupCount} / 10
+              {result.spf.lookupCount} / 10 ({result.spf.directLookupCount} direct, {result.spf.nestedLookupCount} nested)
             </Badge>
+            {result.spf.isCnameInherited && (
+              <span className="ml-2 text-blue-600 text-xs">
+                📎 CNAME inherited
+              </span>
+            )}
           </div>
           {result.spf.lookupDetails && result.spf.lookupDetails.length > 0 && <LookupDetails details={result.spf.lookupDetails} />}
           {result.spf.errors.map((e,i) => 

@@ -1,5 +1,5 @@
 
-export type LookupType = 'SPF' | 'DMARC' | 'BIMI' | 'CNAME';
+export type LookupType = 'SPF' | 'DMARC' | 'BIMI' | 'CNAME' | 'MX';
 
 export interface LookupDetail {
   number: number;
@@ -23,8 +23,11 @@ export interface DomainResult {
     errors: string[];
     nestedLookups: { [key: string]: string };
     lookupCount: number;
+    directLookupCount: number;
+    nestedLookupCount: number;
     exceedsLookupLimit: boolean;
     lookupDetails: LookupDetail[];
+    isCnameInherited: boolean;
   };
   dmarc: {
     record: string | null;
@@ -52,6 +55,10 @@ export interface DomainResult {
     certificateIssueDate: string | null;
     certificateAuthority: string | null;
     certificateIssuer: string | null;
+    errors: string[];
+  };
+  mx: {
+    records: Array<{ priority: number; exchange: string }>;
     errors: string[];
   };
   websiteLogo: string | null;
